@@ -1,0 +1,19 @@
+/* =============================================
+   TYPOGRAPHY — Estilos tipográficos globales
+   ============================================= */
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+h1 { font-size: 1.75rem; }
+h2 { font-size: 1.25rem; }
+h3 { font-size: 1rem;    }
+
+code,
+pre {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+}
