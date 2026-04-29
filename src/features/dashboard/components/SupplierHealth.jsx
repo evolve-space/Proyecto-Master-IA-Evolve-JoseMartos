@@ -1,14 +1,14 @@
 const providers = [
-  { initial: 'L', name: 'Logitech',   status: 'ok' },
-  { initial: 'A', name: 'AWS Global', status: 'ok' },
-  { initial: 'S', name: 'SteelWorks', status: 'warning' },
+  { initial: 'S', name: 'SunFlower Industries', status: 'ok' },
+  { initial: 'P', name: 'Palm Oil Co.',          status: 'ok' },
+  { initial: 'S', name: 'Soja Global S.L.',      status: 'warning' },
 ]
 
 export default function SupplierHealth() {
   return (
     <div className="bg-white border border-[#E2E4D9] p-lg rounded-xl shadow-sm">
       <h3 className="font-label-md text-label-md text-on-surface mb-md">
-        Top Providers Health
+        Estado de proveedores
       </h3>
       <div className="space-y-4">
         {providers.map(({ initial, name, status }) => (

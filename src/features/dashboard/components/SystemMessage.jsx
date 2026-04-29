@@ -5,10 +5,10 @@ export default function SystemMessage() {
         <span className="material-symbols-outlined text-secondary">info</span>
         <div>
           <p className="font-label-sm text-label-sm text-secondary uppercase mb-1">
-            Update Available
+            Aviso del sistema
           </p>
           <p className="text-body-sm text-slate-600">
-            The quarterly audit report is ready for your review in the documents tab.
+            El informe trimestral de importaciones está listo para su revisión en la pestaña de documentos.
           </p>
         </div>
       </div>

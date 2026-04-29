@@ -1,31 +1,41 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
-import MainLayout from '../components/layout/MainLayout'
-import DashboardPage  from '../features/dashboard/pages/DashboardPage'
-import ProvidersPage  from '../features/proveedores/pages/ProvidersPage'
-import ProductsPage   from '../features/productos/pages/ProductsPage'
-import OrdersPage     from '../features/pedidos/pages/OrdersPage'
-import UsersPage      from '../features/usuarios/pages/UsersPage'
+import MainLayout        from '../components/layout/MainLayout'
+import DashboardPage     from '../features/dashboard/pages/DashboardPage'
+import OfertasPage       from '../features/ofertas/pages/OfertasPage'
+import ContratosPage     from '../features/contratos/pages/ContratosPage'
+import MuestrasPage      from '../features/muestras/pages/MuestrasPage'
+import ImportacionesPage from '../features/importaciones/pages/ImportacionesPage'
+import ProvidersPage     from '../features/proveedores/pages/ProvidersPage'
+import UsersPage         from '../features/usuarios/pages/UsersPage'
 
 const router = createBrowserRouter([
   {
     path: '/',
-    element: <MainLayout headerTitle="Dashboard"><DashboardPage /></MainLayout>,
+    element: <MainLayout headerTitle="Inicio"><DashboardPage /></MainLayout>,
+  },
+  {
+    path: '/ofertas',
+    element: <MainLayout headerTitle="Ofertas"><OfertasPage /></MainLayout>,
+  },
+  {
+    path: '/contratos',
+    element: <MainLayout headerTitle="Contratos"><ContratosPage /></MainLayout>,
+  },
+  {
+    path: '/muestras',
+    element: <MainLayout headerTitle="Muestras"><MuestrasPage /></MainLayout>,
+  },
+  {
+    path: '/importaciones',
+    element: <MainLayout headerTitle="Importaciones"><ImportacionesPage /></MainLayout>,
   },
   {
     path: '/proveedores',
-    element: <MainLayout headerTitle="Providers"><ProvidersPage /></MainLayout>,
-  },
-  {
-    path: '/productos',
-    element: <MainLayout headerTitle="Products"><ProductsPage /></MainLayout>,
-  },
-  {
-    path: '/pedidos',
-    element: <MainLayout headerTitle="Orders"><OrdersPage /></MainLayout>,
+    element: <MainLayout headerTitle="Proveedores"><ProvidersPage /></MainLayout>,
   },
   {
     path: '/usuarios',
-    element: <MainLayout headerTitle="Users"><UsersPage /></MainLayout>,
+    element: <MainLayout headerTitle="Usuarios"><UsersPage /></MainLayout>,
   },
 ])
 

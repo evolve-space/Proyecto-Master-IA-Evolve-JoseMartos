@@ -22,7 +22,7 @@ export default function Header({ title = 'Dashboard', onToggleSidebar, sidebarOp
           </span>
           <input
             className="pl-10 pr-4 py-2 bg-white border border-[#E2E4D9] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#62C234] focus:border-[#62C234] transition-all w-64 text-body-sm font-body-sm"
-            placeholder="Search orders, providers..."
+            placeholder="Buscar ofertas, proveedores..."
             type="text"
           />
         </div>
