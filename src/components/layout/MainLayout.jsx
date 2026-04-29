@@ -1,35 +1,37 @@
-import './MainLayout.css'
+import { useState } from 'react'
+import Sidebar from './Sidebar'
+import Header from './Header'
 
-export default function MainLayout({ children }) {
+export default function MainLayout({ children, headerTitle }) {
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+
   return (
-    <div className="layout">
-      {/* Sidebar */}
-      <aside className="layout__sidebar">
-        <h2 className="layout__sidebar-title">CRM Aceites</h2>
-        {[
-          { label: 'Dashboard',   href: '/' },
-          { label: 'Proveedores', href: '/proveedores' },
-          { label: 'Productos',   href: '/productos' },
-          { label: 'Pedidos',     href: '/pedidos' },
-          { label: 'Usuarios',    href: '/usuarios' },
-        ].map(({ label, href }) => (
-          <a key={href} href={href} className="layout__nav-link">
-            {label}
-          </a>
-        ))}
-      </aside>
+    <div className="font-body-md text-on-background">
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      {/* Contenido principal */}
-      <div className="layout__content">
-        <header className="layout__header">
-          <span className="layout__header-spacer" />
-          <span className="layout__header-user">Admin</span>
-        </header>
+      {/* Overlay para móvil */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/30 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-        <main className="layout__main">
+      <div
+        className={`flex flex-col min-h-screen transition-all duration-300 ${
+          sidebarOpen ? 'ml-[280px]' : 'ml-0'
+        }`}
+      >
+        <Header
+          title={headerTitle}
+          onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
+          sidebarOpen={sidebarOpen}
+        />
+        <main className="p-8 flex-1">
           {children}
         </main>
       </div>
     </div>
   )
 }
+

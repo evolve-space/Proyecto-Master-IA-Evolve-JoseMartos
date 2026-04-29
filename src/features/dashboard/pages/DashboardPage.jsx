@@ -1,32 +1,33 @@
-import './DashboardPage.css'
-
-const stats = [
-  { label: 'Proveedores', value: '0', key: 'proveedores' },
-  { label: 'Productos',   value: '0', key: 'productos'   },
-  { label: 'Pedidos',     value: '0', key: 'pedidos'     },
-  { label: 'Usuarios',    value: '0', key: 'usuarios'    },
-]
+import SummaryCards from '../components/SummaryCards'
+import RecentActivity from '../components/RecentActivity'
+import ActionCard from '../components/ActionCard'
+import SupplierHealth from '../components/SupplierHealth'
+import SystemMessage from '../components/SystemMessage'
+import FloatingActionButton from '../../../components/ui/FloatingActionButton'
 
 export default function DashboardPage() {
   return (
-    <div>
-      <h1 className="dashboard__title">Dashboard</h1>
+    <>
+      {/* Bento grid de resumen */}
+      <SummaryCards />
 
-      {/* Tarjetas de resumen */}
-      <div className="dashboard__stats">
-        {stats.map(({ label, value, key }) => (
-          <div key={key} className={`dashboard__stat-card dashboard__stat-card--${key}`}>
-            <p className="dashboard__stat-label">{label}</p>
-            <p className="dashboard__stat-value">{value}</p>
-          </div>
-        ))}
+      {/* Cuerpo del dashboard */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
+        {/* Actividad reciente — ocupa 2/3 */}
+        <div className="lg:col-span-2">
+          <RecentActivity />
+        </div>
+
+        {/* Panel lateral — ocupa 1/3 */}
+        <div className="flex flex-col gap-gutter">
+          <ActionCard />
+          <SupplierHealth />
+          <SystemMessage />
+        </div>
       </div>
 
-      {/* Panel de actividad reciente */}
-      <div className="dashboard__activity">
-        <h2 className="dashboard__activity-title">Actividad reciente</h2>
-        <p className="dashboard__activity-empty">Aún no hay actividad registrada.</p>
-      </div>
-    </div>
+      <FloatingActionButton />
+    </>
   )
 }
+

@@ -1,0 +1,138 @@
+@import "tailwindcss";
+
+@theme {
+  /* ── Colores primarios ─────────────────── */
+  --color-primary:                    #276c00;
+  --color-primary-container:          #62c234;
+  --color-on-primary:                 #ffffff;
+  --color-on-primary-container:       #194b00;
+  --color-primary-fixed:              #96fb66;
+  --color-primary-fixed-dim:          #7bdd4d;
+  --color-on-primary-fixed:           #072100;
+  --color-on-primary-fixed-variant:   #1c5200;
+  --color-inverse-primary:            #7bdd4d;
+  --color-surface-tint:               #276c00;
+
+  /* ── Colores secundarios ───────────────── */
+  --color-secondary:                  #655880;
+  --color-secondary-container:        #e0d0ff;
+  --color-on-secondary:               #ffffff;
+  --color-on-secondary-container:     #63577f;
+  --color-secondary-fixed:            #eaddff;
+  --color-secondary-fixed-dim:        #cfbfee;
+  --color-on-secondary-fixed:         #201539;
+  --color-on-secondary-fixed-variant: #4c4067;
+
+  /* ── Colores terciarios ────────────────── */
+  --color-tertiary:                   #656100;
+  --color-tertiary-container:         #b8b000;
+  --color-on-tertiary:                #ffffff;
+  --color-on-tertiary-container:      #454200;
+  --color-tertiary-fixed:             #f1e722;
+  --color-tertiary-fixed-dim:         #d4cb00;
+  --color-on-tertiary-fixed:          #1e1c00;
+  --color-on-tertiary-fixed-variant:  #4c4800;
+
+  /* ── Error ─────────────────────────────── */
+  --color-error:                      #ba1a1a;
+  --color-error-container:            #ffdad6;
+  --color-on-error:                   #ffffff;
+  --color-on-error-container:         #93000a;
+
+  /* ── Fondo y superficie ────────────────── */
+  --color-background:                 #fafaf3;
+  --color-on-background:              #1a1c18;
+  --color-surface:                    #fafaf3;
+  --color-surface-dim:                #dadad4;
+  --color-surface-bright:             #fafaf3;
+  --color-surface-variant:            #e3e3dc;
+  --color-surface-container-lowest:   #ffffff;
+  --color-surface-container-low:      #f4f4ed;
+  --color-surface-container:          #eeeee7;
+  --color-surface-container-high:     #e8e9e2;
+  --color-surface-container-highest:  #e3e3dc;
+  --color-on-surface:                 #1a1c18;
+  --color-on-surface-variant:         #404a39;
+  --color-inverse-surface:            #2f312d;
+  --color-inverse-on-surface:         #f1f1ea;
+
+  /* ── Contornos ─────────────────────────── */
+  --color-outline:                    #707a67;
+  --color-outline-variant:            #bfcab4;
+
+  /* ── Familias tipográficas ─────────────── */
+  --font-h1:        Manrope, sans-serif;
+  --font-h2:        Manrope, sans-serif;
+  --font-h3:        Manrope, sans-serif;
+  --font-body-lg:   Manrope, sans-serif;
+  --font-body-md:   Manrope, sans-serif;
+  --font-body-sm:   Manrope, sans-serif;
+  --font-label-md:  Manrope, sans-serif;
+  --font-label-sm:  Manrope, sans-serif;
+
+  /* ── Tamaños tipográficos ──────────────── */
+  --text-h1:                   40px;
+  --text-h1--line-height:      48px;
+  --text-h1--letter-spacing:   -0.02em;
+  --text-h1--font-weight:      700;
+
+  --text-h2:                   32px;
+  --text-h2--line-height:      40px;
+  --text-h2--letter-spacing:   -0.01em;
+  --text-h2--font-weight:      700;
+
+  --text-h3:                   24px;
+  --text-h3--line-height:      32px;
+  --text-h3--font-weight:      600;
+
+  --text-body-lg:              18px;
+  --text-body-lg--line-height: 28px;
+  --text-body-lg--font-weight: 400;
+
+  --text-body-md:              16px;
+  --text-body-md--line-height: 24px;
+  --text-body-md--font-weight: 400;
+
+  --text-body-sm:              14px;
+  --text-body-sm--line-height: 20px;
+  --text-body-sm--font-weight: 400;
+
+  --text-label-md:              14px;
+  --text-label-md--line-height: 16px;
+  --text-label-md--font-weight: 600;
+
+  --text-label-sm:                  12px;
+  --text-label-sm--line-height:     16px;
+  --text-label-sm--letter-spacing:  0.02em;
+  --text-label-sm--font-weight:     700;
+
+  /* ── Espaciados personalizados ─────────── */
+  --spacing-xs:               4px;
+  --spacing-sm:               8px;
+  --spacing-base:             8px;
+  --spacing-md:               16px;
+  --spacing-lg:               24px;
+  --spacing-xl:               32px;
+  --spacing-gutter:           24px;
+  --spacing-container-margin: 40px;
+
+  /* ── Radios de borde ───────────────────── */
+  --radius:      0.25rem;
+  --radius-lg:   0.5rem;
+  --radius-xl:   0.75rem;
+  --radius-full: 9999px;
+}
+
+/* ── Estilos globales ──────────────────────── */
+body {
+  background-color: #fafaf3;
+  min-height: max(884px, 100dvh);
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.card-hover-shadow:hover {
+  box-shadow: 0 12px 24px -4px rgba(72, 145, 37, 0.04);
+}
