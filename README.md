@@ -1,14 +1,128 @@
 # SRM Compras — Backend API
 
-API REST construida con **Symfony 7** + **Doctrine ORM**. Base URL por defecto en desarrollo: `http://localhost:8000`
+API REST construida con **Symfony 7** + **Doctrine ORM**.  
+URL base en desarrollo: `http://127.0.0.1:8000`
 
 ---
 
-## Arrancar el servidor local
+## Requisitos previos
+
+| Herramienta | Versión mínima | Descarga                                   |
+| ----------- | -------------- | ------------------------------------------ |
+| PHP         | 8.2            | https://www.php.net/downloads              |
+| Composer    | 2.x            | https://getcomposer.org                    |
+| MySQL       | 8.0            | https://dev.mysql.com/downloads/ (o XAMPP) |
+| Symfony CLI | última         | https://symfony.com/download               |
+
+> Si usas **XAMPP**, asegúrate de que el servicio MySQL esté activo antes de continuar.
+
+---
+
+## Instalación paso a paso
+
+### 1. Clonar el repositorio
 
 ```bash
-php -S localhost:8000 -t public
+git clone <url-del-repositorio>
+cd srm-compras-backend
 ```
+
+### 2. Instalar dependencias PHP
+
+```bash
+composer install
+```
+
+### 3. Configurar variables de entorno
+
+Copia el fichero de entorno y edítalo con tus credenciales:
+
+```bash
+cp .env .env.local
+```
+
+Abre `.env.local` y ajusta la línea de la base de datos:
+
+```env
+# MySQL sin contraseña (XAMPP por defecto)
+DATABASE_URL="mysql://root:@127.0.0.1:3306/srm_compras?serverVersion=8.0&charset=utf8mb4"
+
+# MySQL con contraseña
+DATABASE_URL="mysql://root:TU_CONTRASEÑA@127.0.0.1:3306/srm_compras?serverVersion=8.0&charset=utf8mb4"
+```
+
+También configura el origen CORS si vas a conectar un frontend:
+
+```env
+# Permite cualquier puerto local (desarrollo)
+CORS_ALLOW_ORIGIN='^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$'
+```
+
+### 4. Crear la base de datos
+
+```bash
+php bin/console doctrine:database:create
+```
+
+### 5. Ejecutar las migraciones
+
+Esto crea todas las tablas necesarias:
+
+```bash
+php bin/console doctrine:migrations:migrate
+```
+
+Confirma con `yes` cuando lo solicite.
+
+### 6. (Opcional) Cargar datos de muestra
+
+Si quieres tener datos de prueba desde el primer momento (proveedores, contratos, importaciones, ofertas, muestras y usuarios de ejemplo):
+
+```bash
+php bin/console app:load-sample-data
+```
+
+### 7. Arrancar el servidor
+
+Con Symfony CLI (recomendado):
+
+```bash
+symfony server:start
+```
+
+O con PHP integrado:
+
+```bash
+php -S 127.0.0.1:8000 -t public
+```
+
+El servidor quedará disponible en **http://127.0.0.1:8000**.
+
+---
+
+## Verificar que funciona
+
+Una vez arrancado, comprueba que la API responde:
+
+```bash
+curl http://127.0.0.1:8000/api/proveedores
+```
+
+Debe devolver un array JSON (vacío `[]` si no cargaste datos de muestra, o con datos si ejecutaste el comando anterior).
+
+---
+
+## Resumen de comandos
+
+```bash
+composer install                            # instalar dependencias
+php bin/console doctrine:database:create    # crear base de datos
+php bin/console doctrine:migrations:migrate # crear tablas
+php bin/console app:load-sample-data        # (opcional) datos de prueba
+symfony server:start                        # arrancar servidor
+```
+
+---
 
 ---
 
