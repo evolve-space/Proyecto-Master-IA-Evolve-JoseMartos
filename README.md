@@ -4,7 +4,89 @@ Dashboard de gestión de compras y proveedores construido con **React 19**, **Vi
 
 ---
 
-## Stack
+## Requisitos previos
+
+Antes de clonar el proyecto, asegúrate de tener instalado lo siguiente en tu máquina:
+
+| Herramienta | Versión mínima | Verificar con   | Descargar en               |
+| ----------- | -------------- | --------------- | -------------------------- |
+| Node.js     | 18+            | `node -v`       | https://nodejs.org         |
+| npm         | 9+             | `npm -v`        | Viene incluido con Node.js |
+| Git         | cualquiera     | `git --version` | https://git-scm.com        |
+
+> Si usas **nvm** puedes ejecutar `nvm use 20` para asegurarte de utilizar una versión compatible.
+
+---
+
+## 1. Clonar el repositorio
+
+```bash
+git clone https://github.com/<usuario>/<repositorio>.git
+cd srm-compras-front
+```
+
+> Sustituye `<usuario>/<repositorio>` por la ruta real del repo en GitHub.
+
+---
+
+## 2. Instalar dependencias
+
+```bash
+npm install
+```
+
+Esto descargará todos los paquetes definidos en `package.json`. No necesitas instalar nada de forma global.
+
+---
+
+## 3. Configurar variables de entorno
+
+El proyecto requiere un archivo `.env` en la raíz para conectarse al backend.
+
+Crea el archivo copiando el ejemplo:
+
+```bash
+# Windows (CMD)
+copy .env.example .env
+
+# Windows (PowerShell) / macOS / Linux
+cp .env.example .env
+```
+
+> Si no existe `.env.example`, crea el archivo `.env` manualmente con el siguiente contenido:
+
+```env
+# URL base del backend
+VITE_API_URL=http://localhost:8000/api
+```
+
+Ajusta el valor de `VITE_API_URL` a la dirección donde esté corriendo el servidor backend.
+
+---
+
+## 4. Iniciar el servidor de desarrollo
+
+```bash
+npm run dev
+```
+
+La aplicación estará disponible en **http://localhost:5173**.
+
+El servidor tiene recarga en caliente (HMR), por lo que cualquier cambio en el código se refleja automáticamente en el navegador sin necesidad de reiniciar.
+
+---
+
+## Otros comandos disponibles
+
+```bash
+npm run build    # Genera el bundle optimizado para producción en /dist
+npm run preview  # Levanta un servidor local para previsualizar el build de producción
+npm run lint     # Ejecuta ESLint para detectar problemas en el código
+```
+
+---
+
+## Stack tecnológico
 
 | Tecnología        | Versión | Rol                                  |
 | ----------------- | ------- | ------------------------------------ |
@@ -18,22 +100,19 @@ Dashboard de gestión de compras y proveedores construido con **React 19**, **Vi
 
 ---
 
-## Instalación y arranque
+## Solución de problemas comunes
 
-```bash
-npm install
-npm run dev
-```
+**`npm install` falla con errores de permisos (Windows)**
+Abre la terminal como Administrador o usa `npm install --legacy-peer-deps`.
 
-La aplicación estará disponible en `http://localhost:5173`.
+**La app carga pero no trae datos del backend**
+Verifica que el valor de `VITE_API_URL` en tu `.env` apunte al backend correcto y que ese servidor esté activo.
 
-Otros comandos:
+**Puerto 5173 ocupado**
+Vite asignará automáticamente el siguiente puerto libre. También puedes forzar uno distinto ejecutando `npm run dev -- --port 3000`.
 
-```bash
-npm run build    # Compilar para producción
-npm run preview  # Previsualizar el build
-npm run lint     # Ejecutar ESLint
-```
+**Cambios en `.env` no se reflejan**
+Las variables de entorno se leen al arrancar. Reinicia el servidor de desarrollo con `Ctrl + C` y vuelve a ejecutar `npm run dev`.
 
 ---
 
