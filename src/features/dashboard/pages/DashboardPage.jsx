@@ -15,6 +15,7 @@ import FloatingActionButton     from '../../../components/ui/FloatingActionButto
 export default function DashboardPage() {
   const [data, setData]       = useState(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError]     = useState(null)
 
   useEffect(() => {
     Promise.all([
@@ -27,13 +28,24 @@ export default function DashboardPage() {
       .then(([ofertas, contratos, muestras, importaciones, proveedores]) =>
         setData({ ofertas, contratos, muestras, importaciones, proveedores })
       )
-      .catch(console.error)
+      .catch((err) => {
+        console.error(err)
+        setError(err)
+      })
       .finally(() => setLoading(false))
   }, [])
 
-  if (loading || !data) return (
+  if (loading) return (
     <div className="flex items-center justify-center h-64">
-      <p className="text-slate-400 text-sm">Cargando dashboardâ€¦</p>
+      <p className="text-slate-400 text-sm">Cargando dashboard…</p>
+    </div>
+  )
+
+  if (error || !data) return (
+    <div className="flex items-center justify-center h-64">
+      <p className="text-red-400 text-sm">
+        Error al cargar el dashboard. Verifica que el servidor esté activo.
+      </p>
     </div>
   )
 
