@@ -1,17 +1,90 @@
-const proveedores = [
-  { id: 1, nombre: 'SunFlower Industries', cifNif: 'B12345678', telefono: '+34 93 123 45 67', web: 'www.sunflower.com',   actividad: 'Aceites vegetales',   dirFact: 'Calle Mayor 10, Barcelona',      dirLog: 'Pol. Industrial Sur, BCN', tipo: 'Fabricante',    certificaciones: 'FOOD, BIO',  contPrincipal: 'John Smith',   formaPago: 60,  email: 'sales@sunflower.com',  movil: '+34 666 111 222', incoterm: 'CIF', observaciones: '-',              documentacion: 'Sí' },
-  { id: 2, nombre: 'Palm Oil Co.',         cifNif: 'A87654321', telefono: '+60 3 1234 5678',  web: 'www.palmoil.com',    actividad: 'Aceite de palma',     dirFact: 'Jalan Bukit 5, Kuala Lumpur', dirLog: 'Port Klang, Malaysia',    tipo: 'Fabricante',    certificaciones: 'HALAL',      contPrincipal: 'Ahmad Razak',  formaPago: 30,  email: 'export@palmoil.com',   movil: '+60 12 345 678',  incoterm: 'CFR', observaciones: '-',              documentacion: 'Sí' },
-  { id: 3, nombre: 'Soja Global S.L.',     cifNif: 'C11223344', telefono: '+54 11 4567 8901', web: 'www.sojaglobal.com', actividad: 'Oleaginosas',         dirFact: 'Av. Córdoba 200, Buenos Aires', dirLog: 'Puerto Buenos Aires', tipo: 'Distribuidor',  certificaciones: 'FOOD',       contPrincipal: 'María García', formaPago: 75,  email: 'ventas@sojaglobal.com',movil: '+54 9 11 5555', incoterm: 'EXW', observaciones: 'Proveedor habitual', documentacion: 'Sí' },
-  { id: 4, nombre: 'BioOils S.A.',         cifNif: 'D55667788', telefono: '+33 1 23 45 67 89',web: 'www.biooils.fr',     actividad: 'Aceites ecológicos',  dirFact: 'Rue de la Paix 8, París',    dirLog: 'Port de Dunkerque',       tipo: 'Fabricante',    certificaciones: 'BIO',        contPrincipal: 'Pierre Dupont', formaPago: 60, email: 'info@biooils.fr',      movil: '+33 6 12 34 56',  incoterm: 'CIP', observaciones: '-',              documentacion: 'No' },
-  { id: 5, nombre: 'KosherFats Ltd.',      cifNif: 'E99001122', telefono: '+972 3 456 7890',  web: 'www.kosherfats.il',  actividad: 'Grasas y aceites',    dirFact: 'Herzl St. 50, Tel Aviv',     dirLog: 'Port of Haifa, Israel',   tipo: 'Fabricante',    certificaciones: 'KOSHER',     contPrincipal: 'David Cohen',  formaPago: 30,  email: 'sales@kosherfats.il',  movil: '+972 50 111 222', incoterm: 'CIF', observaciones: '-',              documentacion: 'Sí' },
-]
+﻿import { useState, useEffect } from 'react'
+import { proveedoresService } from '../services/proveedoresService'
+import Modal from '../../../components/ui/Modal'
 
 const tipoStyle = {
-  'Fabricante':    'bg-primary-container/20 text-primary',
-  'Distribuidor':  'bg-secondary-container text-secondary',
+  Fabricante:   'bg-primary-container/20 text-primary',
+  Distribuidor: 'bg-secondary-container text-secondary',
+}
+
+const inp = 'w-full border border-[#E2E4D9] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary'
+
+function F({ label, children, full }) {
+  return (
+    <div className={full ? 'col-span-2' : ''}>
+      <label className="block text-xs font-medium text-slate-500 mb-1">{label}</label>
+      {children}
+    </div>
+  )
+}
+
+const EMPTY = {
+  nombre: '', cifNif: '', telefono: '', movil: '', email: '', web: '',
+  actividad: '', direccionFacturacion: '', tipo: 'Fabricante',
+  certificaciones: '', contactoPrincipal: '', formaPago: 30,
+  incoterm: 'CIF', documentacion: false, observaciones: '',
 }
 
 export default function ProvidersPage() {
+  const [proveedores, setProveedores] = useState([])
+  const [loading, setLoading]         = useState(true)
+  const [error, setError]             = useState(null)
+  const [modal, setModal]             = useState(null)   // null | 'create' | 'edit' | 'detail' | 'delete'
+  const [selected, setSelected]       = useState(null)
+  const [form, setForm]               = useState(EMPTY)
+  const [saving, setSaving]           = useState(false)
+  const [menuOpen, setMenuOpen]       = useState(null)
+
+  useEffect(() => {
+    proveedoresService.getAll()
+      .then(setProveedores)
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => {
+    if (!menuOpen) return
+    const h = () => setMenuOpen(null)
+    document.addEventListener('click', h)
+    return () => document.removeEventListener('click', h)
+  }, [menuOpen])
+
+  const openCreate = ()  => { setForm(EMPTY); setSelected(null); setModal('create') }
+  const openEdit   = p   => { setForm({ ...EMPTY, ...p }); setSelected(p); setModal('edit') }
+  const openDetail = p   => { setSelected(p); setModal('detail') }
+  const openDelete = p   => { setSelected(p); setModal('delete') }
+  const close      = ()  => { setModal(null); setSelected(null) }
+  const set        = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  const handleSubmit = async e => {
+    e.preventDefault()
+    setSaving(true)
+    try {
+      if (modal === 'create') {
+        const created = await proveedoresService.create(form)
+        setProveedores(prev => [...prev, created])
+      } else {
+        const updated = await proveedoresService.update(selected.id, form)
+        setProveedores(prev => prev.map(x => x.id === updated.id ? updated : x))
+      }
+      close()
+    } catch (e) { alert(e.message) }
+    finally { setSaving(false) }
+  }
+
+  const handleDelete = async () => {
+    setSaving(true)
+    try {
+      await proveedoresService.remove(selected.id)
+      setProveedores(prev => prev.filter(x => x.id !== selected.id))
+      close()
+    } catch (e) { alert(e.message) }
+    finally { setSaving(false) }
+  }
+
+  if (loading) return <p className="p-lg text-slate-500">Cargando proveedoresâ€¦</p>
+  if (error)   return <p className="p-lg text-red-500">Error: {error}</p>
+
   return (
     <div>
       {/* Cabecera */}
@@ -20,7 +93,7 @@ export default function ProvidersPage() {
           <h2 className="font-h2 text-h2 text-on-surface">Proveedores</h2>
           <p className="text-body-sm text-slate-500 mt-1">{proveedores.length} proveedores registrados</p>
         </div>
-        <button className="flex items-center gap-2 bg-primary text-white font-label-md text-label-md px-md py-sm rounded-lg hover:bg-primary/90 active:scale-95 transition-all">
+        <button onClick={openCreate} className="flex items-center gap-2 bg-primary text-white font-label-md text-label-md px-md py-sm rounded-lg hover:bg-primary/90 active:scale-95 transition-all">
           <span className="material-symbols-outlined text-base">add</span>
           Nuevo Proveedor
         </button>
@@ -46,7 +119,7 @@ export default function ProvidersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E2E4D9]">
-              {proveedores.map((p) => (
+              {proveedores.map(p => (
                 <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -59,19 +132,35 @@ export default function ProvidersPage() {
                   </td>
                   <td className="px-6 py-4 text-body-sm font-mono text-slate-500">{p.cifNif}</td>
                   <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-[12px] font-bold ${tipoStyle[p.tipo]}`}>{p.tipo}</span>
+                    <span className={`px-3 py-1 rounded-full text-[12px] font-bold ${tipoStyle[p.tipo] ?? 'bg-slate-100 text-slate-500'}`}>{p.tipo}</span>
                   </td>
                   <td className="px-6 py-4 text-body-sm text-slate-500">{p.actividad}</td>
                   <td className="px-6 py-4 text-body-sm text-slate-500">{p.certificaciones}</td>
-                  <td className="px-6 py-4 text-body-sm">{p.contPrincipal}</td>
+                  <td className="px-6 py-4 text-body-sm">{p.contactoPrincipal}</td>
                   <td className="px-6 py-4 text-body-sm text-slate-500">{p.email}</td>
-                  <td className="px-6 py-4 text-body-sm">{p.formaPago} días</td>
+                  <td className="px-6 py-4 text-body-sm">{p.formaPago} dÃ­as</td>
                   <td className="px-6 py-4 text-body-sm text-slate-500">{p.incoterm}</td>
-                  <td className="px-6 py-4 text-body-sm">{p.documentacion}</td>
-                  <td className="px-6 py-4 text-right">
-                    <button className="text-slate-400 hover:text-primary">
+                  <td className="px-6 py-4 text-body-sm">{p.documentacion ? 'SÃ­' : 'No'}</td>
+                  <td className="px-6 py-4 text-right relative">
+                    <button
+                      onClick={e => { e.stopPropagation(); setMenuOpen(menuOpen === p.id ? null : p.id) }}
+                      className="text-slate-400 hover:text-primary"
+                    >
                       <span className="material-symbols-outlined">more_vert</span>
                     </button>
+                    {menuOpen === p.id && (
+                      <div className="absolute right-6 top-10 z-10 bg-white border border-[#E2E4D9] rounded-lg shadow-lg py-1 min-w-[150px]" onClick={e => e.stopPropagation()}>
+                        <button onClick={() => { openDetail(p); setMenuOpen(null) }} className="flex items-center gap-2 w-full px-4 py-2 text-sm hover:bg-slate-50 text-slate-700">
+                          <span className="material-symbols-outlined text-base">visibility</span> Ver detalle
+                        </button>
+                        <button onClick={() => { openEdit(p); setMenuOpen(null) }} className="flex items-center gap-2 w-full px-4 py-2 text-sm hover:bg-slate-50 text-slate-700">
+                          <span className="material-symbols-outlined text-base">edit</span> Editar
+                        </button>
+                        <button onClick={() => { openDelete(p); setMenuOpen(null) }} className="flex items-center gap-2 w-full px-4 py-2 text-sm hover:bg-red-50 text-red-600">
+                          <span className="material-symbols-outlined text-base">delete</span> Eliminar
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -79,6 +168,94 @@ export default function ProvidersPage() {
           </table>
         </div>
       </div>
+
+      {/* â”€â”€ Detalle â”€â”€ */}
+      {modal === 'detail' && selected && (
+        <Modal title={selected.nombre} onClose={close} size="lg">
+          <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+            {[
+              ['CIF/NIF', selected.cifNif],
+              ['Tipo', selected.tipo],
+              ['Actividad', selected.actividad],
+              ['Certificaciones', selected.certificaciones],
+              ['TelÃ©fono', selected.telefono],
+              ['MÃ³vil', selected.movil],
+              ['E-mail', selected.email],
+              ['Web', selected.web],
+              ['DirecciÃ³n facturaciÃ³n', selected.direccionFacturacion],
+              ['Contacto principal', selected.contactoPrincipal],
+              ['Forma de pago', selected.formaPago ? `${selected.formaPago} dÃ­as` : '-'],
+              ['Incoterm', selected.incoterm],
+              ['DocumentaciÃ³n', selected.documentacion ? 'SÃ­' : 'No'],
+              ['Observaciones', selected.observaciones ?? '-'],
+            ].map(([l, v]) => (
+              <div key={l} className="border-b border-slate-100 pb-3">
+                <p className="text-xs text-slate-400 uppercase font-medium mb-0.5">{l}</p>
+                <p className="text-sm text-on-surface">{v || '-'}</p>
+              </div>
+            ))}
+          </div>
+        </Modal>
+      )}
+
+      {/* â”€â”€ Crear / Editar â”€â”€ */}
+      {(modal === 'create' || modal === 'edit') && (
+        <Modal title={modal === 'create' ? 'Nuevo Proveedor' : `Editar: ${selected.nombre}`} onClose={close} size="lg">
+          <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
+            <F label="Nombre *"><input required value={form.nombre} onChange={e => set('nombre', e.target.value)} className={inp} /></F>
+            <F label="CIF/NIF"><input value={form.cifNif ?? ''} onChange={e => set('cifNif', e.target.value)} className={inp} /></F>
+            <F label="Tipo">
+              <select value={form.tipo ?? 'Fabricante'} onChange={e => set('tipo', e.target.value)} className={inp}>
+                <option>Fabricante</option><option>Distribuidor</option>
+              </select>
+            </F>
+            <F label="Actividad"><input value={form.actividad ?? ''} onChange={e => set('actividad', e.target.value)} className={inp} /></F>
+            <F label="TelÃ©fono"><input value={form.telefono ?? ''} onChange={e => set('telefono', e.target.value)} className={inp} /></F>
+            <F label="MÃ³vil"><input value={form.movil ?? ''} onChange={e => set('movil', e.target.value)} className={inp} /></F>
+            <F label="E-mail"><input type="email" value={form.email ?? ''} onChange={e => set('email', e.target.value)} className={inp} /></F>
+            <F label="Web"><input value={form.web ?? ''} onChange={e => set('web', e.target.value)} className={inp} /></F>
+            <F label="DirecciÃ³n facturaciÃ³n"><input value={form.direccionFacturacion ?? ''} onChange={e => set('direccionFacturacion', e.target.value)} className={inp} /></F>
+            <F label="Certificaciones"><input value={form.certificaciones ?? ''} onChange={e => set('certificaciones', e.target.value)} className={inp} /></F>
+            <F label="Contacto principal"><input value={form.contactoPrincipal ?? ''} onChange={e => set('contactoPrincipal', e.target.value)} className={inp} /></F>
+            <F label="Forma de pago (dÃ­as)">
+              <select value={form.formaPago ?? 30} onChange={e => set('formaPago', Number(e.target.value))} className={inp}>
+                <option value={30}>30</option><option value={60}>60</option><option value={75}>75</option>
+              </select>
+            </F>
+            <F label="Incoterm">
+              <select value={form.incoterm ?? 'CIF'} onChange={e => set('incoterm', e.target.value)} className={inp}>
+                <option>EXW</option><option>CIF</option><option>CIP</option><option>CFR</option>
+              </select>
+            </F>
+            <div className="flex items-center gap-2 mt-5">
+              <input type="checkbox" id="doc-p" checked={!!form.documentacion} onChange={e => set('documentacion', e.target.checked)} className="w-4 h-4 accent-primary" />
+              <label htmlFor="doc-p" className="text-sm text-slate-600 cursor-pointer">DocumentaciÃ³n</label>
+            </div>
+            <F label="Observaciones" full>
+              <textarea rows={2} value={form.observaciones ?? ''} onChange={e => set('observaciones', e.target.value)} className={inp + ' resize-none'} />
+            </F>
+            <div className="col-span-2 flex justify-end gap-3 pt-2 border-t border-slate-100">
+              <button type="button" onClick={close} className="px-4 py-2 rounded-lg border border-[#E2E4D9] text-sm text-slate-600 hover:bg-slate-50">Cancelar</button>
+              <button type="submit" disabled={saving} className="px-4 py-2 rounded-lg bg-primary text-white text-sm hover:bg-primary/90 disabled:opacity-50">
+                {saving ? 'Guardandoâ€¦' : modal === 'create' ? 'Crear' : 'Guardar cambios'}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* â”€â”€ Eliminar â”€â”€ */}
+      {modal === 'delete' && selected && (
+        <Modal title="Eliminar proveedor" onClose={close} size="sm">
+          <p className="text-sm text-slate-600 mb-6">Â¿Eliminar <strong>{selected.nombre}</strong>? Esta acciÃ³n no se puede deshacer.</p>
+          <div className="flex justify-end gap-3">
+            <button onClick={close} className="px-4 py-2 rounded-lg border border-[#E2E4D9] text-sm text-slate-600 hover:bg-slate-50">Cancelar</button>
+            <button onClick={handleDelete} disabled={saving} className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm hover:bg-red-700 disabled:opacity-50">
+              {saving ? 'Eliminandoâ€¦' : 'Eliminar'}
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }
