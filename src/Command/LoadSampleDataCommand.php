@@ -30,6 +30,17 @@ class LoadSampleDataCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
+        // ── Limpiar tablas antes de cargar ──────────────────────────────────
+        $conn = $this->em->getConnection();
+        $conn->executeStatement('SET FOREIGN_KEY_CHECKS = 0');
+        $conn->executeStatement('TRUNCATE TABLE muestra');
+        $conn->executeStatement('TRUNCATE TABLE oferta');
+        $conn->executeStatement('TRUNCATE TABLE contrato');
+        $conn->executeStatement('TRUNCATE TABLE importacion');
+        $conn->executeStatement('TRUNCATE TABLE usuario');
+        $conn->executeStatement('TRUNCATE TABLE proveedor');
+        $conn->executeStatement('SET FOREIGN_KEY_CHECKS = 1');
+
         // ── Usuarios (3) ────────────────────────────────────────────────────
         $u1 = (new Usuario())->setNombre('Admin Principal')->setTipo('superadmin');
         $u2 = (new Usuario())->setNombre('María García')->setTipo('admin');
