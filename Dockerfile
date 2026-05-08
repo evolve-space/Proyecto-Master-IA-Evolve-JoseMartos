@@ -9,11 +9,11 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
 
-COPY composer.json composer.lock ./
-RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction
+COPY composer.json composer.lock symfony.lock* ./
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 COPY . .
-RUN composer dump-autoload --optimize
+RUN composer dump-autoload --optimize --no-dev
 
 EXPOSE 8080
 
