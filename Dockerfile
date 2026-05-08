@@ -7,13 +7,14 @@ RUN apt-get update && apt-get install -y \
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
+ENV COMPOSER_ALLOW_SUPERUSER=1
+
 WORKDIR /app
 
-COPY composer.json composer.lock symfony.lock* ./
+COPY . .
+
 RUN composer install --no-dev --no-scripts --no-interaction && \
     composer dump-autoload --optimize --no-dev
-
-COPY . .
 
 EXPOSE 8080
 
