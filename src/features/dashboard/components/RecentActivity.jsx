@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+﻿import { useNavigate } from 'react-router-dom'
 
 function fmtDate(d) {
   if (!d) return '-'
@@ -101,7 +101,7 @@ export default function RecentActivity({ ofertas = [] }) {
         </div>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full text-left">
+        <table className="w-full text-left min-w-[800px]">
           <thead className="bg-surface-container-low text-on-surface-variant text-[11px] uppercase tracking-wider">
             <tr>
               <th className="px-6 py-3">Fecha</th>

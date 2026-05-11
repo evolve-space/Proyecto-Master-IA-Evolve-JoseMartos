@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { usuariosService } from '../services/usuariosService'
 import Modal from '../../../components/ui/Modal'
+import FloatingActionButton from '../../../components/ui/FloatingActionButton'
 
 const tipoLabel = { superadmin: 'Superadmin', admin: 'Administrador', normal: 'Usuario' }
 
@@ -32,6 +33,7 @@ export default function UsersPage() {
   const [form, setForm]           = useState(EMPTY)
   const [saving, setSaving]       = useState(false)
   const [menuOpen, setMenuOpen]   = useState(null)
+  const [search, setSearch]       = useState('')
 
   useEffect(() => {
     usuariosService.getAll()
@@ -82,22 +84,40 @@ export default function UsersPage() {
   if (loading) return <p className="p-lg text-slate-500">Cargando usuarios…</p>
   if (error)   return <p className="p-lg text-red-500">Error: {error}</p>
 
+  const q = search.toLowerCase()
+  const filtered = q
+    ? usuarios.filter(u =>
+        [u.nombre, u.tipo].some(v => (v ?? '').toLowerCase().includes(q))
+      )
+    : usuarios
+
   return (
     <div>
-      <div className="flex justify-between items-center mb-xl">
+      <div className="flex flex-wrap justify-between items-start gap-4 mb-6">
         <div>
           <h2 className="font-h2 text-h2 text-on-surface">Usuarios</h2>
-          <p className="text-body-sm text-slate-500 mt-1">{usuarios.length} usuarios registrados</p>
+          <p className="text-body-sm text-slate-500 mt-1">{filtered.length} de {usuarios.length} usuarios</p>
         </div>
-        <button onClick={openCreate} className="flex items-center gap-2 bg-primary text-white font-label-md text-label-md px-md py-sm rounded-lg hover:bg-primary/90 active:scale-95 transition-all">
-          <span className="material-symbols-outlined text-base">person_add</span>
-          Nuevo Usuario
-        </button>
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="relative">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Buscar usuario…"
+              className="pl-9 pr-4 py-2 text-sm border border-[#E2E4D9] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary w-52"
+            />
+          </div>
+          <button onClick={openCreate} className="flex items-center gap-2 bg-primary text-white font-label-md text-label-md px-md py-sm rounded-lg hover:bg-primary/90 active:scale-95 transition-all">
+            <span className="material-symbols-outlined text-base">person_add</span>
+            Nuevo Usuario
+          </button>
+        </div>
       </div>
 
       <div className="bg-white border border-[#E2E4D9] rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full text-left min-w-[800px]">
             <thead className="bg-surface-container-low text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider">
               <tr>
                 <th className="px-6 py-4">Id</th>
@@ -107,7 +127,10 @@ export default function UsersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E2E4D9]">
-              {usuarios.map(u => (
+              {filtered.length === 0 && (
+                <tr><td colSpan={4} className="text-center py-10 text-slate-400 text-sm">Sin resultados para «{search}»</td></tr>
+              )}
+              {filtered.map(u => (
                 <tr key={u.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-6 py-4 text-body-sm text-slate-400">#{u.id}</td>
                   <td className="px-6 py-4">
@@ -180,6 +203,8 @@ export default function UsersPage() {
           </div>
         </Modal>
       )}
+
+      <FloatingActionButton onClick={openCreate} />
     </div>
   )
 }

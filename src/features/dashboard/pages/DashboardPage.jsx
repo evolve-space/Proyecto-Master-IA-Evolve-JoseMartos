@@ -10,7 +10,6 @@ import ActionCard               from '../components/ActionCard'
 import SupplierHealth           from '../components/SupplierHealth'
 import SystemMessage            from '../components/SystemMessage'
 import { MonthlyImportsChart, MuestrasDonut } from '../components/Charts'
-import FloatingActionButton     from '../../../components/ui/FloatingActionButton'
 
 export default function DashboardPage() {
   const [data, setData]       = useState(null)
@@ -89,12 +88,12 @@ export default function DashboardPage() {
         totalKgYear={totalKgYear}
       />
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-gutter">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Columna izquierda — tabla + gráficas */}
-        <div className="xl:col-span-2 flex flex-col gap-gutter">
+        <div className="xl:col-span-2 flex flex-col gap-6">
           <RecentActivity ofertas={recentOfertas} />
-          <div className="grid grid-cols-3 gap-gutter">
-            <div className="col-span-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-2">
               <MonthlyImportsChart importaciones={importaciones} />
             </div>
             <MuestrasDonut muestras={muestras} />
@@ -102,14 +101,13 @@ export default function DashboardPage() {
         </div>
 
         {/* Columna derecha — acciones + proveedores + alertas */}
-        <div className="flex flex-col gap-gutter">
+        <div className="flex flex-col gap-6">
           <ActionCard />
           <SupplierHealth proveedores={proveedores} ofertas={ofertas} contratos={contratos} />
           <SystemMessage alerts={alerts} totalEurYear={totalEurYear} />
         </div>
       </div>
 
-      <FloatingActionButton />
     </>
   )
 }

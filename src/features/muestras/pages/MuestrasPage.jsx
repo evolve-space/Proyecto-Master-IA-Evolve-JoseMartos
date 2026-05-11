@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { muestrasService } from '../services/muestrasService'
 import { proveedoresService } from '../../proveedores/services/proveedoresService'
 import { usuariosService } from '../../usuarios/services/usuariosService'
 import Modal from '../../../components/ui/Modal'
+import FloatingActionButton from '../../../components/ui/FloatingActionButton'
 
 const estadoStyle = {
   'Análisis':  'bg-secondary-container text-secondary',
@@ -20,7 +21,7 @@ const inp = 'w-full border border-[#E2E4D9] rounded-lg px-3 py-2 text-sm focus:o
 
 function F({ label, children, full }) {
   return (
-    <div className={full ? 'col-span-2' : ''}>
+    <div className={full ? 'sm:col-span-2' : ''}>
       <label className="block text-xs font-medium text-slate-500 mb-1">{label}</label>
       {children}
     </div>
@@ -49,6 +50,7 @@ export default function MuestrasPage() {
   const [form, setForm]               = useState(EMPTY)
   const [saving, setSaving]           = useState(false)
   const [menuOpen, setMenuOpen]       = useState(null)
+  const [search, setSearch]           = useState('')
 
   useEffect(() => {
     Promise.all([muestrasService.getAll(), proveedoresService.getAll(), usuariosService.getAll()])
@@ -101,17 +103,36 @@ export default function MuestrasPage() {
   if (loading) return <p className="p-lg text-slate-500">Cargando muestras…</p>
   if (error)   return <p className="p-lg text-red-500">Error: {error}</p>
 
+  const q = search.toLowerCase()
+  const filtered = q
+    ? muestras.filter(m =>
+        [m.proveedorNombre, m.producto, m.grado, m.estado, m.idLote, m.usuarioNombre]
+          .some(v => (v ?? '').toLowerCase().includes(q))
+      )
+    : muestras
+
   return (
     <div>
-      <div className="flex justify-between items-center mb-xl">
+      <div className="flex flex-wrap justify-between items-start gap-4 mb-6">
         <div>
           <h2 className="font-h2 text-h2 text-on-surface">Muestras</h2>
-          <p className="text-body-sm text-slate-500 mt-1">{muestras.length} muestras registradas</p>
+          <p className="text-body-sm text-slate-500 mt-1">{filtered.length} de {muestras.length} muestras</p>
         </div>
-        <button onClick={openCreate} className="flex items-center gap-2 bg-primary text-white font-label-md text-label-md px-md py-sm rounded-lg hover:bg-primary/90 active:scale-95 transition-all">
-          <span className="material-symbols-outlined text-base">add</span>
-          Nueva Muestra
-        </button>
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="relative">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Buscar muestra…"
+              className="pl-9 pr-4 py-2 text-sm border border-[#E2E4D9] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary w-52"
+            />
+          </div>
+          <button onClick={openCreate} className="flex items-center gap-2 bg-primary text-white font-label-md text-label-md px-md py-sm rounded-lg hover:bg-primary/90 active:scale-95 transition-all">
+            <span className="material-symbols-outlined text-base">add</span>
+            Nueva Muestra
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-gutter mb-xl">
@@ -128,7 +149,7 @@ export default function MuestrasPage() {
 
       <div className="bg-white border border-[#E2E4D9] rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full text-left min-w-[800px]">
             <thead className="bg-surface-container-low text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider">
               <tr>
                 <th className="px-6 py-4">Fecha</th>
@@ -144,7 +165,10 @@ export default function MuestrasPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E2E4D9]">
-              {muestras.map(m => (
+              {filtered.length === 0 && (
+                <tr><td colSpan={10} className="text-center py-10 text-slate-400 text-sm">Sin resultados para «{search}»</td></tr>
+              )}
+              {filtered.map(m => (
                 <tr key={m.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-6 py-4 text-body-sm text-slate-500 whitespace-nowrap">{fmtDate(m.fecha)}</td>
                   <td className="px-6 py-4">
@@ -189,7 +213,7 @@ export default function MuestrasPage() {
 
       {modal === 'detail' && selected && (
         <Modal title={`Muestra — ${selected.idLote}`} onClose={close} size="lg">
-          <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
             {[
               ['Fecha', fmtDate(selected.fecha)],
               ['Proveedor', selected.proveedorNombre],
@@ -212,7 +236,7 @@ export default function MuestrasPage() {
 
       {(modal === 'create' || modal === 'edit') && (
         <Modal title={modal === 'create' ? 'Nueva Muestra' : `Editar: ${selected.idLote}`} onClose={close} size="lg">
-          <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <F label="Proveedor *">
               <select required value={form.proveedorId ?? ''} onChange={e => set('proveedorId', Number(e.target.value))} className={inp}>
                 <option value="">-- Seleccionar --</option>
@@ -245,7 +269,7 @@ export default function MuestrasPage() {
             <F label="Observaciones" full>
               <textarea rows={2} value={form.observaciones ?? ''} onChange={e => set('observaciones', e.target.value)} className={inp + ' resize-none'} />
             </F>
-            <div className="col-span-2 flex justify-end gap-3 pt-2 border-t border-slate-100">
+            <div className="sm:col-span-2 flex justify-end gap-3 pt-2 border-t border-slate-100">
               <button type="button" onClick={close} className="px-4 py-2 rounded-lg border border-[#E2E4D9] text-sm text-slate-600 hover:bg-slate-50">Cancelar</button>
               <button type="submit" disabled={saving} className="px-4 py-2 rounded-lg bg-primary text-white text-sm hover:bg-primary/90 disabled:opacity-50">
                 {saving ? 'Guardando…' : modal === 'create' ? 'Crear' : 'Guardar cambios'}
@@ -266,6 +290,8 @@ export default function MuestrasPage() {
           </div>
         </Modal>
       )}
+
+      <FloatingActionButton onClick={openCreate} />
     </div>
   )
 }

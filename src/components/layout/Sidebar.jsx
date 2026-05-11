@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import { useAuth } from '../../app/AuthContext'
 
 const navItems = [
   { icon: 'dashboard',      label: 'Inicio',         to: '/' },
@@ -11,6 +12,8 @@ const navItems = [
 ]
 
 export default function Sidebar({ open = true, onClose }) {
+  const { logout } = useAuth()
+
   return (
     <aside
       className={`fixed left-0 top-0 w-[280px] h-screen border-r border-[#E2E4D9] bg-white flex flex-col z-50 transition-transform duration-300 ${
@@ -18,37 +21,52 @@ export default function Sidebar({ open = true, onClose }) {
       }`}
     >
       {/* Logo + botón cerrar */}
-      <div className="px-8 py-8 flex items-center justify-between">
-        <span className="text-[#62C234] font-extrabold text-xl tracking-tight">
-          ProcureFlow
-        </span>
+      <div className="px-6 py-6 flex items-center justify-between border-b border-[#E2E4D9]">
+        <div className="flex items-center gap-2">
+          <span className="w-7 h-7 rounded-lg bg-[#62C234] flex items-center justify-center">
+            <span className="material-symbols-outlined text-white text-[18px]">inventory_2</span>
+          </span>
+          <span className="text-[#276c00] font-extrabold text-lg tracking-tight">ProcureFlow</span>
+        </div>
         <button
           onClick={onClose}
-          className="text-slate-400 hover:text-slate-600 transition-colors"
+          className="text-slate-400 hover:text-slate-600 transition-colors lg:hidden"
           aria-label="Cerrar sidebar"
         >
-          <span className="material-symbols-outlined">menu_open</span>
+          <span className="material-symbols-outlined">close</span>
         </button>
       </div>
 
       {/* Navegación */}
-      <nav className="flex-1 flex flex-col gap-1 py-4">
+      <nav className="flex-1 flex flex-col gap-0.5 py-4 px-3 overflow-y-auto">
         {navItems.map(({ icon, label, to }) => (
           <NavLink
             key={to}
             to={to}
             end={to === '/'}
+            onClick={() => { if (window.innerWidth < 1024) onClose() }}
             className={({ isActive }) =>
               isActive
-                ? 'text-[#62C234] font-bold bg-[#62C234]/10 border-r-4 border-[#62C234] py-3 px-8 flex items-center gap-4 transition-all duration-200'
-                : 'text-slate-500 hover:text-[#62C234] hover:bg-slate-50 py-3 px-8 flex items-center gap-4 transition-all duration-200'
+                ? 'text-[#276c00] font-semibold bg-[#62C234]/15 rounded-lg py-2.5 px-4 flex items-center gap-3 transition-all duration-150'
+                : 'text-slate-500 hover:text-[#276c00] hover:bg-slate-50 rounded-lg py-2.5 px-4 flex items-center gap-3 transition-all duration-150'
             }
           >
-            <span className="material-symbols-outlined">{icon}</span>
-            <span className="font-label-md text-label-md">{label}</span>
+            <span className="material-symbols-outlined text-[22px]">{icon}</span>
+            <span className="text-sm font-medium">{label}</span>
           </NavLink>
         ))}
-      </nav>      
+      </nav>
+
+      {/* Pie — cerrar sesión */}
+      <div className="border-t border-[#E2E4D9] p-3">
+        <button
+          onClick={logout}
+          className="flex items-center gap-3 w-full rounded-lg py-2.5 px-4 text-sm text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+        >
+          <span className="material-symbols-outlined text-[22px]">logout</span>
+          <span className="font-medium">Cerrar sesión</span>
+        </button>
+      </div>
     </aside>
   )
 }

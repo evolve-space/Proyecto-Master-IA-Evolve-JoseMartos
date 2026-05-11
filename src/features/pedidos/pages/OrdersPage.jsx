@@ -1,4 +1,4 @@
-const orders = [
+﻿const orders = [
   { id: '#PO-2024-081', product: 'Office Equipment',  provider: 'Logitech Inc.',  date: 'Apr 28, 2026', amount: '$1,450.00',  status: 'Pending' },
   { id: '#PO-2024-079', product: 'Cloud Services',    provider: 'AWS Global',     date: 'Apr 27, 2026', amount: '$12,890.00', status: 'Approved' },
   { id: '#PO-2024-078', product: 'Raw Materials',     provider: 'SteelWorks Co.', date: 'Apr 26, 2026', amount: '$45,000.00', status: 'Processing' },
@@ -26,7 +26,7 @@ export default function OrdersPage() {
   return (
     <div>
       {/* Cabecera */}
-      <div className="flex justify-between items-center mb-xl">
+      <div className="flex flex-wrap justify-between items-start gap-4 mb-6">
         <div>
           <h2 className="font-h2 text-h2 text-on-surface">Orders</h2>
           <p className="text-body-sm text-slate-500 mt-1">{orders.length} purchase orders</p>
@@ -55,7 +55,7 @@ export default function OrdersPage() {
       {/* Tabla */}
       <div className="bg-white border border-[#E2E4D9] rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full text-left min-w-[800px]">
             <thead className="bg-surface-container-low text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider">
               <tr>
                 <th className="px-6 py-4">Order ID</th>

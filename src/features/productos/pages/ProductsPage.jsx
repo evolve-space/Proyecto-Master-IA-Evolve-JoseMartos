@@ -1,4 +1,4 @@
-const products = [
+﻿const products = [
   { id: 1, name: 'Logitech MX Master 3', sku: 'LOG-MX3-001', category: 'Office Equipment', stock: 124, price: '$99.00',  status: 'In Stock' },
   { id: 2, name: 'EC2 Reserved Instance',  sku: 'AWS-EC2-R01', category: 'Cloud Services',   stock: 999, price: '$150.00', status: 'In Stock' },
   { id: 3, name: 'Steel Rod 10mm',          sku: 'STL-ROD-010', category: 'Raw Materials',    stock: 12,  price: '$4.50',   status: 'Low Stock' },
@@ -16,7 +16,7 @@ export default function ProductsPage() {
   return (
     <div>
       {/* Cabecera */}
-      <div className="flex justify-between items-center mb-xl">
+      <div className="flex flex-wrap justify-between items-start gap-4 mb-6">
         <div>
           <h2 className="font-h2 text-h2 text-on-surface">Products</h2>
           <p className="text-body-sm text-slate-500 mt-1">{products.length} products in catalog</p>
@@ -28,7 +28,7 @@ export default function ProductsPage() {
       </div>
 
       {/* KPIs rápidos */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-gutter mb-xl">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
           { label: 'Total Products', value: products.length,                            icon: 'inventory_2' },
           { label: 'In Stock',       value: products.filter(p => p.status === 'In Stock').length,     icon: 'check_circle' },
@@ -48,7 +48,7 @@ export default function ProductsPage() {
       {/* Tabla */}
       <div className="bg-white border border-[#E2E4D9] rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full text-left min-w-[800px]">
             <thead className="bg-surface-container-low text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider">
               <tr>
                 <th className="px-6 py-4">Product</th>

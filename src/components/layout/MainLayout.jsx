@@ -1,9 +1,20 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Sidebar from './Sidebar'
 import Header from './Header'
 
 export default function MainLayout({ children, headerTitle }) {
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  // En móvil el sidebar empieza cerrado; en desktop empieza abierto
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1024)
+
+  // Cierra el sidebar automáticamente al reducir la pantalla a móvil
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)')
+    const handler = (e) => {
+      if (!e.matches) setSidebarOpen(false)
+    }
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
 
   return (
     <div className="font-body-md text-on-background">
@@ -19,7 +30,7 @@ export default function MainLayout({ children, headerTitle }) {
 
       <div
         className={`flex flex-col min-h-screen transition-all duration-300 ${
-          sidebarOpen ? 'ml-[280px]' : 'ml-0'
+          sidebarOpen ? 'lg:ml-[280px]' : 'ml-0'
         }`}
       >
         <Header
@@ -27,7 +38,7 @@ export default function MainLayout({ children, headerTitle }) {
           onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
           sidebarOpen={sidebarOpen}
         />
-        <main className="p-8 flex-1">
+        <main className="p-4 sm:p-6 lg:p-8 flex-1">
           {children}
         </main>
       </div>
