@@ -14,6 +14,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 #[AsCommand(
     name: 'app:load-sample-data',
@@ -21,8 +22,10 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 class LoadSampleDataCommand extends Command
 {
-    public function __construct(private EntityManagerInterface $em)
-    {
+    public function __construct(
+        private EntityManagerInterface $em,
+        private UserPasswordHasherInterface $hasher,
+    ) {
         parent::__construct();
     }
 
@@ -42,9 +45,18 @@ class LoadSampleDataCommand extends Command
         $conn->executeStatement('SET FOREIGN_KEY_CHECKS = 1');
 
         // ── Usuarios (3) ────────────────────────────────────────────────────
-        $u1 = (new Usuario())->setNombre('Admin Principal')->setTipo('superadmin');
-        $u2 = (new Usuario())->setNombre('María García')->setTipo('admin');
-        $u3 = (new Usuario())->setNombre('Carlos López')->setTipo('normal');
+        $u1 = new Usuario();
+        $u1->setNombre('Admin Principal')->setTipo('superadmin')->setUsername('superadmin')->setEmail('superadmin@srm.local');
+        $u1->setPassword($this->hasher->hashPassword($u1, 'superadmin'));
+
+        $u2 = new Usuario();
+        $u2->setNombre('María García')->setTipo('admin')->setUsername('maria')->setEmail('maria@srm.local');
+        $u2->setPassword($this->hasher->hashPassword($u2, 'admin123'));
+
+        $u3 = new Usuario();
+        $u3->setNombre('Carlos López')->setTipo('normal')->setUsername('carlos')->setEmail('carlos@srm.local');
+        $u3->setPassword($this->hasher->hashPassword($u3, 'user123'));
+
         $this->em->persist($u1);
         $this->em->persist($u2);
         $this->em->persist($u3);

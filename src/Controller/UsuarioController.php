@@ -9,6 +9,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/api/usuarios', name: 'api_usuario_')]
@@ -27,16 +28,16 @@ class UsuarioController extends AbstractController
     }
 
     #[Route('', name: 'create', methods: ['POST'])]
-    public function create(Request $request, EntityManagerInterface $em): JsonResponse
+    public function create(Request $request, EntityManagerInterface $em, UserPasswordHasherInterface $hasher): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
 
-        if (empty($data['nombre']) || empty($data['tipo'])) {
-            return $this->json(['error' => 'Los campos nombre y tipo son obligatorios.'], Response::HTTP_BAD_REQUEST);
+        if (empty($data['nombre']) || empty($data['tipo']) || empty($data['username']) || empty($data['password'])) {
+            return $this->json(['error' => 'Los campos nombre, tipo, username y password son obligatorios.'], Response::HTTP_BAD_REQUEST);
         }
 
         $usuario = new Usuario();
-        $this->hydrate($usuario, $data);
+        $this->hydrate($usuario, $data, $hasher);
         $em->persist($usuario);
         $em->flush();
 
@@ -44,10 +45,10 @@ class UsuarioController extends AbstractController
     }
 
     #[Route('/{id}', name: 'update', methods: ['PUT', 'PATCH'])]
-    public function update(Usuario $usuario, Request $request, EntityManagerInterface $em): JsonResponse
+    public function update(Usuario $usuario, Request $request, EntityManagerInterface $em, UserPasswordHasherInterface $hasher): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
-        $this->hydrate($usuario, $data);
+        $this->hydrate($usuario, $data, $hasher);
         $em->flush();
 
         return $this->json($this->serialize($usuario));
@@ -62,18 +63,23 @@ class UsuarioController extends AbstractController
         return $this->json(null, Response::HTTP_NO_CONTENT);
     }
 
-    private function hydrate(Usuario $u, array $data): void
+    private function hydrate(Usuario $u, array $data, UserPasswordHasherInterface $hasher): void
     {
-        if (array_key_exists('nombre', $data)) $u->setNombre($data['nombre']);
-        if (array_key_exists('tipo', $data))   $u->setTipo($data['tipo']);
+        if (array_key_exists('nombre', $data))   $u->setNombre($data['nombre']);
+        if (array_key_exists('tipo', $data))     $u->setTipo($data['tipo']);
+        if (array_key_exists('username', $data)) $u->setUsername($data['username']);
+        if (array_key_exists('email', $data))    $u->setEmail($data['email']);
+        if (!empty($data['password']))           $u->setPassword($hasher->hashPassword($u, $data['password']));
     }
 
     private function serialize(Usuario $u): array
     {
         return [
-            'id'     => $u->getId(),
-            'nombre' => $u->getNombre(),
-            'tipo'   => $u->getTipo(),
+            'id'       => $u->getId(),
+            'nombre'   => $u->getNombre(),
+            'username' => $u->getUsername(),
+            'email'    => $u->getEmail(),
+            'tipo'     => $u->getTipo(),
         ];
     }
 }

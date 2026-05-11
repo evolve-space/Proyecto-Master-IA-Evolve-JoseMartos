@@ -1,164 +1,144 @@
-# SRM Compras — Backend API
+﻿# SRM Compras — API Reference
 
-API REST construida con **Symfony 7** + **Doctrine ORM**.  
-URL base en desarrollo: `http://127.0.0.1:8000`
-
----
-
-## Requisitos previos
-
-| Herramienta | Versión mínima | Descarga                                   |
-| ----------- | -------------- | ------------------------------------------ |
-| PHP         | 8.2            | https://www.php.net/downloads              |
-| Composer    | 2.x            | https://getcomposer.org                    |
-| MySQL       | 8.0            | https://dev.mysql.com/downloads/ (o XAMPP) |
-| Symfony CLI | última         | https://symfony.com/download               |
-
-> Si usas **XAMPP**, asegúrate de que el servicio MySQL esté activo antes de continuar.
+**URL base (desarrollo):** `http://127.0.0.1:8000`  
+**Formato:** todos los endpoints aceptan y devuelven `application/json`
 
 ---
 
-## Instalación paso a paso
+## Autenticación (JWT)
 
-### 1. Clonar el repositorio
+La API usa **JSON Web Tokens**. El flujo es:
 
-```bash
-git clone <url-del-repositorio>
-cd srm-compras-backend
-```
+1. Hacer `POST /api/login` con email y password → recibes un `token`
+2. En todas las demás peticiones incluir la cabecera:
+    ```
+    Authorization: Bearer <token>
+    ```
 
-### 2. Instalar dependencias PHP
-
-```bash
-composer install
-```
-
-### 3. Configurar variables de entorno
-
-Copia el fichero de entorno y edítalo con tus credenciales:
-
-```bash
-cp .env .env.local
-```
-
-Abre `.env.local` y ajusta la línea de la base de datos:
-
-```env
-# MySQL sin contraseña (XAMPP por defecto)
-DATABASE_URL="mysql://root:@127.0.0.1:3306/srm_compras?serverVersion=8.0&charset=utf8mb4"
-
-# MySQL con contraseña
-DATABASE_URL="mysql://root:TU_CONTRASEÑA@127.0.0.1:3306/srm_compras?serverVersion=8.0&charset=utf8mb4"
-```
-
-También configura el origen CORS si vas a conectar un frontend:
-
-```env
-# Permite cualquier puerto local (desarrollo)
-CORS_ALLOW_ORIGIN='^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$'
-```
-
-### 4. Crear la base de datos
-
-```bash
-php bin/console doctrine:database:create
-```
-
-### 5. Ejecutar las migraciones
-
-Esto crea todas las tablas necesarias:
-
-```bash
-php bin/console doctrine:migrations:migrate
-```
-
-Confirma con `yes` cuando lo solicite.
-
-### 6. (Opcional) Cargar datos de muestra
-
-Si quieres tener datos de prueba desde el primer momento (proveedores, contratos, importaciones, ofertas, muestras y usuarios de ejemplo):
-
-```bash
-php bin/console app:load-sample-data
-```
-
-### 7. Arrancar el servidor
-
-Con Symfony CLI (recomendado):
-
-```bash
-symfony server:start
-```
-
-O con PHP integrado:
-
-```bash
-php -S 127.0.0.1:8000 -t public
-```
-
-El servidor quedará disponible en **http://127.0.0.1:8000**.
+El único endpoint público (sin token) es `POST /api/login`.
 
 ---
 
-## Verificar que funciona
+### POST /api/login
 
-Una vez arrancado, comprueba que la API responde:
+Obtiene el token de acceso.
 
-```bash
-curl http://127.0.0.1:8000/api/proveedores
+**Body**
+
+```json
+{
+    "email": "superadmin@srm.local",
+    "password": "superadmin""
+}
 ```
 
-Debe devolver un array JSON (vacío `[]` si no cargaste datos de muestra, o con datos si ejecutaste el comando anterior).
+**Respuesta 401** — credenciales incorrectas
 
----
-
-## Resumen de comandos
-
-```bash
-composer install                            # instalar dependencias
-php bin/console doctrine:database:create    # crear base de datos
-php bin/console doctrine:migrations:migrate # crear tablas
-php bin/console app:load-sample-data        # (opcional) datos de prueba
-symfony server:start                        # arrancar servidor
+```json
+{
+    "code": 401,
+    "message": "Invalid credentials."
+}
 ```
 
 ---
 
----
+### GET /api/me
 
-## Configuración CORS
+Devuelve los datos del usuario autenticado.
 
-En el fichero `.env` ajusta el origen permitido para que coincida con la URL de tu frontend React:
+**Respuesta 200**
 
-```env
-# Desarrollo local (cualquier puerto)
-CORS_ALLOW_ORIGIN='^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$'
-
-# Producción (sustituye por tu dominio)
-# CORS_ALLOW_ORIGIN='^https://tu-dominio\.com$'
+```json
+{
+    "id": 1,
+    "nombre": "Admin Principal",
+    "email": "superadmin@srm.local",
+    "tipo": "superadmin",
+    "roles": ["ROLE_SUPER_ADMIN", "ROLE_ADMIN", "ROLE_USER"]
+}
 ```
 
----
-
-## Referencia de endpoints
-
-Todos los endpoints devuelven y aceptan **JSON**. Incluye siempre la cabecera:
-
-```
-Content-Type: application/json
-```
+> **Valores de `tipo`:** `superadmin` | `admin` | `normal`
 
 ---
 
-### Proveedores `/api/proveedores`
+## Usuarios — /api/usuarios
 
-#### Listar todos
+### GET /api/usuarios
 
-```http
-GET /api/proveedores
+**Respuesta 200**
+
+```json
+[
+    {
+        "id": 1,
+        "nombre": "Admin Principal",
+        "email": "superadmin@srm.local",
+        "tipo": "superadmin"
+    },
+    {
+        "id": 2,
+        "nombre": "Maria Garcia",
+        "email": "maria@srm.local",
+        "tipo": "admin"
+    },
+    {
+        "id": 3,
+        "nombre": "Carlos Lopez",
+        "email": "carlos@srm.local",
+        "tipo": "normal"
+    }
+]
 ```
 
-**Respuesta `200`**
+### GET /api/usuarios/{id}
+
+**Respuesta 200** — objeto usuario (misma estructura que el listado)
+
+### POST /api/usuarios
+
+**Body**
+
+```json
+{
+    "nombre": "Nuevo Usuario",
+    "email": "nuevo@srm.local",
+    "password": "secreto123",
+    "tipo": "normal"
+}
+```
+
+> Todos los campos son **obligatorios**. `email` debe ser unico.
+> `tipo`: `superadmin` | `admin` | `normal`
+
+**Respuesta 201** — objeto usuario creado (sin campo `password`)
+
+### PATCH /api/usuarios/{id}
+
+Envia solo los campos que quieres modificar.
+
+```json
+{ "tipo": "admin" }
+```
+
+```json
+{ "password": "nuevo_secreto" }
+```
+
+**Respuesta 200** — objeto usuario actualizado
+
+### DELETE /api/usuarios/{id}
+
+**Respuesta 204** — sin contenido
+
+---
+
+## Proveedores — /api/proveedores
+
+### GET /api/proveedores
+
+**Respuesta 200**
 
 ```json
 [
@@ -168,11 +148,11 @@ GET /api/proveedores
         "cifNif": "A12345678",
         "telefono": "+34 91 234 5678",
         "web": "www.quimtec.es",
-        "actividad": "Química industrial",
+        "actividad": "Quimica industrial",
         "direccionFacturacion": "Calle Mayor 10, 28001 Madrid",
         "tipo": "Fabricante",
         "certificaciones": "BIO, HALAL",
-        "contactoPrincipal": "Juan Pérez",
+        "contactoPrincipal": "Juan Perez",
         "formaPago": 30,
         "email": "compras@quimtec.es",
         "movil": "+34 600 111 222",
@@ -183,71 +163,60 @@ GET /api/proveedores
 ]
 ```
 
-#### Obtener uno
+### GET /api/proveedores/{id}
 
-```http
-GET /api/proveedores/{id}
-```
+**Respuesta 200** — objeto proveedor (misma estructura)
 
-#### Crear
-
-```http
-POST /api/proveedores
-```
+### POST /api/proveedores
 
 **Body**
 
 ```json
 {
-    "nombre": "Nuevo Proveedor S.L.", // obligatorio
+    "nombre": "Nuevo Proveedor S.L.",
     "cifNif": "B11223344",
     "telefono": "+34 93 000 0000",
     "web": "www.ejemplo.com",
-    "actividad": "Alimentación",
+    "actividad": "Alimentacion",
     "direccionFacturacion": "Calle Test 1, Barcelona",
-    "tipo": "Fabricante", // Fabricante | Distribuidor
+    "tipo": "Fabricante",
     "certificaciones": "FOOD",
     "contactoPrincipal": "Nombre Apellido",
-    "formaPago": 60, // 30 | 60 | 75
+    "formaPago": 60,
     "email": "info@ejemplo.com",
     "movil": "+34 600 000 000",
-    "incoterm": "EXW", // EXW | CIF | CIP | CFR
+    "incoterm": "EXW",
     "documentacion": true,
-    "observaciones": "Notas opcionales"
+    "observaciones": null
 }
 ```
 
-**Respuesta `201`** — objeto proveedor creado.
+> Campo **obligatorio**: `nombre`
+> `tipo`: `Fabricante` | `Distribuidor`
+> `formaPago`: `30` | `60` | `75` (dias)
+> `incoterm`: `EXW` | `CIF` | `CIP` | `CFR`
 
-#### Actualizar (envía solo los campos a modificar)
+**Respuesta 201** — objeto proveedor creado
 
-```http
-PATCH /api/proveedores/{id}
-```
+### PATCH /api/proveedores/{id}
 
 ```json
 { "telefono": "+34 91 999 9999", "formaPago": 30 }
 ```
 
-#### Eliminar
+**Respuesta 200** — objeto proveedor actualizado
 
-```http
-DELETE /api/proveedores/{id}
-```
+### DELETE /api/proveedores/{id}
 
-**Respuesta `204`** — sin contenido.
+**Respuesta 204** — sin contenido
 
 ---
 
-### Contratos `/api/contratos`
+## Contratos — /api/contratos
 
-#### Listar todos
+### GET /api/contratos
 
-```http
-GET /api/contratos
-```
-
-**Respuesta `200`**
+**Respuesta 200**
 
 ```json
 [
@@ -255,7 +224,7 @@ GET /api/contratos
         "id": 1,
         "fecha": "2025-01-15",
         "numeroContrato": "CONT-2025-001",
-        "producto": "Ácido cítrico anhidro",
+        "producto": "Acido citrico anhidro",
         "proveedorId": 1,
         "proveedorNombre": "Quimtec S.A.",
         "precio": "1.2500",
@@ -270,28 +239,22 @@ GET /api/contratos
 ]
 ```
 
-#### Obtener uno
+### GET /api/contratos/{id}
 
-```http
-GET /api/contratos/{id}
-```
+**Respuesta 200** — objeto contrato (misma estructura)
 
-#### Crear
-
-```http
-POST /api/contratos
-```
+### POST /api/contratos
 
 **Body**
 
 ```json
 {
-    "proveedorId": 1, // obligatorio
+    "proveedorId": 1,
     "fecha": "2026-01-01",
     "numeroContrato": "CONT-2026-001",
     "producto": "Lecitina de soja",
     "precio": "3.80",
-    "grado": "HALAL", // BIO | HALAL | KOSHER | FOOD
+    "grado": "HALAL",
     "cantidad": "20000",
     "cantidadPedida": "0",
     "cantidadPendiente": "20000",
@@ -301,33 +264,31 @@ POST /api/contratos
 }
 ```
 
-#### Actualizar
+> Campo **obligatorio**: `proveedorId`
+> `grado`: `BIO` | `HALAL` | `KOSHER` | `FOOD`
+> Fechas en formato `YYYY-MM-DD`
 
-```http
-PATCH /api/contratos/{id}
-```
+**Respuesta 201** — objeto contrato creado
+
+### PATCH /api/contratos/{id}
 
 ```json
 { "cantidadPedida": "10000", "cantidadPendiente": "10000" }
 ```
 
-#### Eliminar
+**Respuesta 200** — objeto contrato actualizado
 
-```http
-DELETE /api/contratos/{id}
-```
+### DELETE /api/contratos/{id}
+
+**Respuesta 204** — sin contenido
 
 ---
 
-### Importaciones `/api/importaciones`
+## Importaciones — /api/importaciones
 
-#### Listar todas
+### GET /api/importaciones
 
-```http
-GET /api/importaciones
-```
-
-**Respuesta `200`**
+**Respuesta 200**
 
 ```json
 [
@@ -337,7 +298,7 @@ GET /api/importaciones
         "fechaFactura": "2025-02-08",
         "proveedorId": 1,
         "proveedorNombre": "Quimtec S.A.",
-        "producto": "Ácido cítrico anhidro",
+        "producto": "Acido citrico anhidro",
         "cantidad": "10000.000",
         "importeEur": "12500.00",
         "aranceles": "3.50",
@@ -354,23 +315,17 @@ GET /api/importaciones
 ]
 ```
 
-#### Obtener una
+### GET /api/importaciones/{id}
 
-```http
-GET /api/importaciones/{id}
-```
+**Respuesta 200** — objeto importacion (misma estructura)
 
-#### Crear
-
-```http
-POST /api/importaciones
-```
+### POST /api/importaciones
 
 **Body**
 
 ```json
 {
-    "proveedorId": 2, // obligatorio
+    "proveedorId": 2,
     "fechaDuaAlbaran": "2026-03-10",
     "fechaFactura": "2026-03-08",
     "producto": "Extracto de vainilla BIO",
@@ -383,35 +338,32 @@ POST /api/importaciones
     "importeUsd": "24412.50",
     "tipoCambio": "1.0850",
     "forwarderer": "DHL Global",
-    "incoterm": "EXW", // EXW | CIF | CIP | CFR
+    "incoterm": "EXW",
     "documentacion": true,
     "observaciones": null
 }
 ```
 
-#### Actualizar
+> Campo **obligatorio**: `proveedorId`
+> `incoterm`: `EXW` | `CIF` | `CIP` | `CFR`
 
-```http
-PATCH /api/importaciones/{id}
-```
+**Respuesta 201** — objeto importacion creado
 
-#### Eliminar
+### PATCH /api/importaciones/{id}
 
-```http
-DELETE /api/importaciones/{id}
-```
+Envia solo los campos a modificar. **Respuesta 200**
+
+### DELETE /api/importaciones/{id}
+
+**Respuesta 204** — sin contenido
 
 ---
 
-### Ofertas `/api/ofertas`
+## Ofertas — /api/ofertas
 
-#### Listar todas
+### GET /api/ofertas
 
-```http
-GET /api/ofertas
-```
-
-**Respuesta `200`**
+**Respuesta 200**
 
 ```json
 [
@@ -420,7 +372,7 @@ GET /api/ofertas
         "fecha": "2025-12-01",
         "proveedorId": 1,
         "proveedorNombre": "Quimtec S.A.",
-        "producto": "Ácido cítrico anhidro",
+        "producto": "Acido citrico anhidro",
         "grado": "Food Grade",
         "cantidad": "25000.000",
         "precio": "1.1800",
@@ -434,60 +386,54 @@ GET /api/ofertas
 ]
 ```
 
-#### Obtener una
+### GET /api/ofertas/{id}
 
-```http
-GET /api/ofertas/{id}
-```
+**Respuesta 200** — objeto oferta (misma estructura)
 
-#### Crear
-
-```http
-POST /api/ofertas
-```
+### POST /api/ofertas
 
 **Body**
 
 ```json
 {
-    "proveedorId": 3, // obligatorio
+    "proveedorId": 3,
     "fecha": "2026-04-01",
     "producto": "Lecitina de soja HALAL",
-    "grado": "Food Grade", // Food Grade | Feed Grade | Reach
+    "grado": "Food Grade",
     "cantidad": "10000",
     "precio": "3.65",
-    "moneda": "EUR", // EUR | USD
+    "moneda": "EUR",
     "incoterm": "CFR",
     "muestra": false,
-    "tipo": "Contrato", // Contrato | Pedido
+    "tipo": "Contrato",
     "documentacion": true,
     "observaciones": null
 }
 ```
 
-#### Actualizar
+> Campo **obligatorio**: `proveedorId`
+> `grado`: `Food Grade` | `Feed Grade` | `Reach`
+> `moneda`: `EUR` | `USD`
+> `incoterm`: `EXW` | `CIF` | `CIP` | `CFR`
+> `tipo`: `Contrato` | `Pedido`
 
-```http
-PATCH /api/ofertas/{id}
-```
+**Respuesta 201** — objeto oferta creado
 
-#### Eliminar
+### PATCH /api/ofertas/{id}
 
-```http
-DELETE /api/ofertas/{id}
-```
+Envia solo los campos a modificar. **Respuesta 200**
+
+### DELETE /api/ofertas/{id}
+
+**Respuesta 204** — sin contenido
 
 ---
 
-### Muestras `/api/muestras`
+## Muestras — /api/muestras
 
-#### Listar todas
+### GET /api/muestras
 
-```http
-GET /api/muestras
-```
-
-**Respuesta `200`**
+**Respuesta 200**
 
 ```json
 [
@@ -496,145 +442,150 @@ GET /api/muestras
         "fecha": "2025-11-10",
         "proveedorId": 1,
         "proveedorNombre": "Quimtec S.A.",
-        "estado": "Análisis",
+        "estado": "Analisis",
         "idLote": "LOT-2025-QT-001",
-        "producto": "Ácido cítrico anhidro",
+        "producto": "Acido citrico anhidro",
         "grado": "FOOD",
         "documentacion": true,
         "observaciones": null,
         "usuarioId": 2,
-        "usuarioNombre": "María García"
+        "usuarioNombre": "Maria Garcia"
     }
 ]
 ```
 
-#### Obtener una
+### GET /api/muestras/{id}
 
-```http
-GET /api/muestras/{id}
-```
+**Respuesta 200** — objeto muestra (misma estructura)
 
-#### Crear
-
-```http
-POST /api/muestras
-```
+### POST /api/muestras
 
 **Body**
 
 ```json
 {
-    "proveedorId": 1, // obligatorio
-    "usuarioId": 2, // opcional
+    "proveedorId": 1,
+    "usuarioId": 2,
     "fecha": "2026-04-15",
-    "estado": "Pendiente", // Compra | Análisis | Pendiente
+    "estado": "Pendiente",
     "idLote": "LOT-2026-001",
-    "producto": "Ácido cítrico anhidro",
-    "grado": "FOOD", // BIO | HALAL | KOSHER | FOOD
+    "producto": "Acido citrico anhidro",
+    "grado": "FOOD",
     "documentacion": false,
     "observaciones": "Primera muestra del lote"
 }
 ```
 
-#### Actualizar
+> Campo **obligatorio**: `proveedorId`
+> `usuarioId`: opcional
+> `estado`: `Compra` | `Analisis` | `Pendiente`
+> `grado`: `BIO` | `HALAL` | `KOSHER` | `FOOD`
 
-```http
-PATCH /api/muestras/{id}
-```
+**Respuesta 201** — objeto muestra creado
+
+### PATCH /api/muestras/{id}
 
 ```json
-{ "estado": "Análisis", "usuarioId": 3 }
+{ "estado": "Analisis", "usuarioId": 3 }
 ```
 
-#### Eliminar
+**Respuesta 200** — objeto muestra actualizado
 
-```http
-DELETE /api/muestras/{id}
-```
+### DELETE /api/muestras/{id}
+
+**Respuesta 204** — sin contenido
 
 ---
 
-### Usuarios `/api/usuarios`
+## Codigos de respuesta
 
-#### Listar todos
-
-```http
-GET /api/usuarios
-```
-
-**Respuesta `200`**
-
-```json
-[
-    { "id": 1, "nombre": "Admin Principal", "tipo": "superadmin" },
-    { "id": 2, "nombre": "María García", "tipo": "admin" },
-    { "id": 3, "nombre": "Carlos López", "tipo": "normal" }
-]
-```
-
-#### Obtener uno
-
-```http
-GET /api/usuarios/{id}
-```
-
-#### Crear
-
-```http
-POST /api/usuarios
-```
-
-**Body**
-
-```json
-{
-    "nombre": "Nuevo Usuario", // obligatorio
-    "tipo": "normal" // obligatorio: superadmin | admin | normal
-}
-```
-
-#### Actualizar
-
-```http
-PATCH /api/usuarios/{id}
-```
-
-```json
-{ "tipo": "admin" }
-```
-
-#### Eliminar
-
-```http
-DELETE /api/usuarios/{id}
-```
-
----
-
-## Códigos de respuesta
-
-| Código | Significado                              |
+| Codigo | Significado                              |
 | ------ | ---------------------------------------- |
-| `200`  | OK — operación completada                |
+| `200`  | OK — operacion completada                |
 | `201`  | Created — recurso creado                 |
 | `204`  | No Content — eliminado correctamente     |
 | `400`  | Bad Request — faltan campos obligatorios |
+| `401`  | Unauthorized — token invalido o ausente  |
 | `404`  | Not Found — recurso no encontrado        |
 
 ---
 
-## Ejemplos con fetch (React)
+## Resumen de endpoints
+
+| Metodo   | Endpoint                  | Descripcion                     |
+| -------- | ------------------------- | ------------------------------- |
+| `POST`   | `/api/login`              | **Publico** — obtener token JWT |
+| `GET`    | `/api/me`                 | Usuario autenticado             |
+| `GET`    | `/api/usuarios`           | Listar usuarios                 |
+| `GET`    | `/api/usuarios/{id}`      | Ver usuario                     |
+| `POST`   | `/api/usuarios`           | Crear usuario                   |
+| `PATCH`  | `/api/usuarios/{id}`      | Editar usuario                  |
+| `DELETE` | `/api/usuarios/{id}`      | Eliminar usuario                |
+| `GET`    | `/api/proveedores`        | Listar proveedores              |
+| `GET`    | `/api/proveedores/{id}`   | Ver proveedor                   |
+| `POST`   | `/api/proveedores`        | Crear proveedor                 |
+| `PATCH`  | `/api/proveedores/{id}`   | Editar proveedor                |
+| `DELETE` | `/api/proveedores/{id}`   | Eliminar proveedor              |
+| `GET`    | `/api/contratos`          | Listar contratos                |
+| `GET`    | `/api/contratos/{id}`     | Ver contrato                    |
+| `POST`   | `/api/contratos`          | Crear contrato                  |
+| `PATCH`  | `/api/contratos/{id}`     | Editar contrato                 |
+| `DELETE` | `/api/contratos/{id}`     | Eliminar contrato               |
+| `GET`    | `/api/importaciones`      | Listar importaciones            |
+| `GET`    | `/api/importaciones/{id}` | Ver importacion                 |
+| `POST`   | `/api/importaciones`      | Crear importacion               |
+| `PATCH`  | `/api/importaciones/{id}` | Editar importacion              |
+| `DELETE` | `/api/importaciones/{id}` | Eliminar importacion            |
+| `GET`    | `/api/ofertas`            | Listar ofertas                  |
+| `GET`    | `/api/ofertas/{id}`       | Ver oferta                      |
+| `POST`   | `/api/ofertas`            | Crear oferta                    |
+| `PATCH`  | `/api/ofertas/{id}`       | Editar oferta                   |
+| `DELETE` | `/api/ofertas/{id}`       | Eliminar oferta                 |
+| `GET`    | `/api/muestras`           | Listar muestras                 |
+| `GET`    | `/api/muestras/{id}`      | Ver muestra                     |
+| `POST`   | `/api/muestras`           | Crear muestra                   |
+| `PATCH`  | `/api/muestras/{id}`      | Editar muestra                  |
+| `DELETE` | `/api/muestras/{id}`      | Eliminar muestra                |
+
+---
+
+## Ejemplo de integracion React
 
 ```js
 const API = "http://localhost:8000/api";
 
-// Listar proveedores
-const proveedores = await fetch(`${API}/proveedores`).then((r) => r.json());
-
-// Crear un contrato
-await fetch(`${API}/contratos`, {
+// 1. Login y guardar token
+const { token } = await fetch(`${API}/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+        email: "superadmin@srm.local",
+        password: "superadmin",
+    }),
+}).then((r) => r.json());
+
+localStorage.setItem("token", token);
+
+// 2. Helper para peticiones autenticadas
+const authFetch = (url, opts = {}) =>
+    fetch(url, {
+        ...opts,
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            ...opts.headers,
+        },
+    });
+
+// 3. Obtener usuario actual
+const me = await authFetch(`${API}/me`).then((r) => r.json());
+
+// 4. Listar proveedores
+const proveedores = await authFetch(`${API}/proveedores`).then((r) => r.json());
+
+// 5. Crear un contrato
+const nuevoContrato = await authFetch(`${API}/contratos`, {
+    method: "POST",
     body: JSON.stringify({
         proveedorId: 1,
         numeroContrato: "CONT-2026-005",
@@ -647,15 +598,33 @@ await fetch(`${API}/contratos`, {
         fechaCaducidad: "2027-06-01",
         documentacion: true,
     }),
-});
+}).then((r) => r.json());
 
-// Actualizar estado de una muestra
-await fetch(`${API}/muestras/3`, {
+// 6. Actualizar estado de una muestra
+await authFetch(`${API}/muestras/3`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ estado: "Compra" }),
 });
 
-// Eliminar una oferta
-await fetch(`${API}/ofertas/2`, { method: "DELETE" });
+// 7. Eliminar una oferta
+await authFetch(`${API}/ofertas/2`, { method: "DELETE" });
 ```
+
+---
+
+## Usuarios de prueba
+
+> Disponibles tras ejecutar `php bin/console app:load-sample-data` en el servidor.
+
+| Email                  | Password     | Tipo       |
+| ---------------------- | ------------ | ---------- |
+| `superadmin@srm.local` | `superadmin` | superadmin |
+| `maria@srm.local`      | `admin123`   | admin      |
+| `carlos@srm.local`     | `user123`    | normal     |
+
+---
+
+## CORS
+
+El backend acepta peticiones del frontend en `localhost` (cualquier puerto) por defecto en desarrollo.
+Para produccion, ajustar la variable `CORS_ALLOW_ORIGIN` en el servidor.
