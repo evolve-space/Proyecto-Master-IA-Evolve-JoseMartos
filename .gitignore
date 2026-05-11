@@ -10,5 +10,5 @@
 ###< symfony/framework-bundle ###
 
 ###> lexik/jwt-authentication-bundle ###
-/config/jwt/*.pem
+# /config/jwt/*.pem  ← incluidas en el repo para despliegue en Railway
 ###< lexik/jwt-authentication-bundle ###
