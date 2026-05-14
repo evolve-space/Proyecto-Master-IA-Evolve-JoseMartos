@@ -11,10 +11,15 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
+/** Todos los endpoints de esta sección requieren rol SUPERADMIN */
 #[Route('/api/usuarios', name: 'api_usuario_')]
+#[IsGranted('ROLE_SUPER_ADMIN')]
 class UsuarioController extends AbstractController
 {
+    private const TIPOS_VALIDOS = ['superadmin', 'admin', 'normal'];
+
     #[Route('', name: 'list', methods: ['GET'])]
     public function list(UsuarioRepository $repo): JsonResponse
     {
@@ -36,6 +41,10 @@ class UsuarioController extends AbstractController
             return $this->json(['error' => 'Los campos nombre, tipo, username y password son obligatorios.'], Response::HTTP_BAD_REQUEST);
         }
 
+        if (!in_array($data['tipo'], self::TIPOS_VALIDOS, true)) {
+            return $this->json(['error' => 'El campo tipo debe ser uno de: ' . implode(', ', self::TIPOS_VALIDOS) . '.'], Response::HTTP_BAD_REQUEST);
+        }
+
         $usuario = new Usuario();
         $this->hydrate($usuario, $data, $hasher);
         $em->persist($usuario);
@@ -48,6 +57,11 @@ class UsuarioController extends AbstractController
     public function update(Usuario $usuario, Request $request, EntityManagerInterface $em, UserPasswordHasherInterface $hasher): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
+
+        if (isset($data['tipo']) && !in_array($data['tipo'], self::TIPOS_VALIDOS, true)) {
+            return $this->json(['error' => 'El campo tipo debe ser uno de: ' . implode(', ', self::TIPOS_VALIDOS) . '.'], Response::HTTP_BAD_REQUEST);
+        }
+
         $this->hydrate($usuario, $data, $hasher);
         $em->flush();
 
