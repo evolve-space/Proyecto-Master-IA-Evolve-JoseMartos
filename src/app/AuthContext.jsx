@@ -37,8 +37,10 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false))
   }, [token, logout])
 
+  const isSuperAdmin = user?.tipo === 'superadmin'
+
   return (
-    <AuthContext.Provider value={{ token, user, login, logout, loading }}>
+    <AuthContext.Provider value={{ token, user, login, logout, loading, isSuperAdmin }}>
       {children}
     </AuthContext.Provider>
   )

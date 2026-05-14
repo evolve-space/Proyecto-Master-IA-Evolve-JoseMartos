@@ -8,11 +8,14 @@ const navItems = [
   { icon: 'science',        label: 'Muestras',        to: '/muestras' },
   { icon: 'local_shipping', label: 'Importaciones',   to: '/importaciones' },
   { icon: 'factory',        label: 'Proveedores',     to: '/proveedores' },
-  { icon: 'group',          label: 'Usuarios',        to: '/usuarios' },
+  { icon: 'group',          label: 'Usuarios',        to: '/usuarios', superAdminOnly: true },
 ]
 
 export default function Sidebar({ open = true, onClose }) {
-  const { logout } = useAuth()
+  const { logout, user } = useAuth()
+  const isSuperAdmin = user?.tipo === 'superadmin'
+
+  const visibleItems = navItems.filter(item => !item.superAdminOnly || isSuperAdmin)
 
   return (
     <aside
@@ -39,7 +42,7 @@ export default function Sidebar({ open = true, onClose }) {
 
       {/* Navegación */}
       <nav className="flex-1 flex flex-col gap-0.5 py-4 px-3 overflow-y-auto">
-        {navItems.map(({ icon, label, to }) => (
+        {visibleItems.map(({ icon, label, to }) => (
           <NavLink
             key={to}
             to={to}

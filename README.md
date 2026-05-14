@@ -1,217 +1,295 @@
-# ProcureFlow — Frontend
+﻿# ProcureFlow — SRM de Compras
 
-Dashboard de gestión de compras y proveedores construido con **React 19**, **Vite 8** y **Tailwind CSS v4**.
+> **Supplier Relationship Management** — aplicación web full-stack para la gestión integral de compras, proveedores y operaciones de importación en el sector de materias primas (industria química/alimentaria).
 
----
-
-## Requisitos previos
-
-Antes de clonar el proyecto, asegúrate de tener instalado lo siguiente en tu máquina:
-
-| Herramienta | Versión mínima | Verificar con   | Descargar en               |
-| ----------- | -------------- | --------------- | -------------------------- |
-| Node.js     | 18+            | `node -v`       | https://nodejs.org         |
-| npm         | 9+             | `npm -v`        | Viene incluido con Node.js |
-| Git         | cualquiera     | `git --version` | https://git-scm.com        |
-
-> Si usas **nvm** puedes ejecutar `nvm use 20` para asegurarte de utilizar una versión compatible.
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
+![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-v4-06B6D4?logo=tailwindcss&logoColor=white)
+![Symfony](https://img.shields.io/badge/Symfony-7.4-000000?logo=symfony&logoColor=white)
+![PHP](https://img.shields.io/badge/PHP-8.2-777BB4?logo=php&logoColor=white)
+![License](https://img.shields.io/badge/licencia-MIT-green)
 
 ---
 
-## 1. Clonar el repositorio
+## Descripción
 
-```bash
-git clone https://github.com/<usuario>/<repositorio>.git
-cd srm-compras-front
-```
+ProcureFlow es un **panel de control para departamentos de compras** que centraliza el seguimiento de ofertas, contratos, muestras de producto, importaciones y proveedores en una sola interfaz. Incluye un sistema de autenticación basado en JWT con tres niveles de rol y un dashboard analítico en tiempo real.
 
-> Sustituye `<usuario>/<repositorio>` por la ruta real del repo en GitHub.
+El proyecto nació de la necesidad real de digitalizar flujos de trabajo manuales (hojas de cálculo, emails) en una empresa importadora de ingredientes químicos y alimentarios.
 
 ---
 
-## 2. Instalar dependencias
+## Características principales
 
-```bash
-npm install
-```
+### Dashboard analítico
 
-Esto descargará todos los paquetes definidos en `package.json`. No necesitas instalar nada de forma global.
+- KPIs en tiempo real: total de kg importados en el año, importe acumulado en €, contratos activos, muestras en análisis.
+- Gráfico de importaciones mensuales (barras) y distribución de muestras por estado (donut).
+- Panel de alertas inteligente: contratos próximos a vencer (< 30 días), muestras pendientes de revisión y proveedores con documentación incompleta.
+- Actividad reciente con las últimas ofertas registradas.
 
----
+### Módulos de gestión (CRUD completo)
 
-## 3. Configurar variables de entorno
+| Módulo            | Descripción                                                                         |
+| ----------------- | ----------------------------------------------------------------------------------- |
+| **Ofertas**       | Registro de cotizaciones de proveedores con precio, cantidad, grado y estado        |
+| **Contratos**     | Seguimiento de contratos de compra, cantidades pedidas/pendientes y caducidad       |
+| **Muestras**      | Control del ciclo de vida de muestras: Pendiente → Análisis → Aprobada/Rechazada    |
+| **Importaciones** | Registro de importaciones con número DUA/albarán, kg, importe y documentación       |
+| **Proveedores**   | Ficha completa: CIF, certificaciones (BIO, HALAL, KOSHER), incoterm, forma de pago  |
+| **Usuarios**      | Gestión de cuentas con roles: `superadmin`, `admin`, `normal`                       |
 
-El proyecto requiere un archivo `.env` en la raíz para conectarse al backend.
+### Autenticación y seguridad
 
-Crea el archivo copiando el ejemplo:
-
-```bash
-# Windows (CMD)
-copy .env.example .env
-
-# Windows (PowerShell) / macOS / Linux
-cp .env.example .env
-```
-
-> Si no existe `.env.example`, crea el archivo `.env` manualmente con el siguiente contenido:
-
-```env
-# URL base del backend
-VITE_API_URL=http://localhost:8000/api
-```
-
-Ajusta el valor de `VITE_API_URL` a la dirección donde esté corriendo el servidor backend.
+- Login con JWT almacenado en `localStorage`.
+- Rutas protegidas con `ProtectedRoute` / `PublicRoute`.
+- Validación del token en cada carga con `GET /api/me` — logout automático si el token expira.
 
 ---
 
-## 4. Iniciar el servidor de desarrollo
+## Arquitectura del sistema
 
-```bash
-npm run dev
+```
+srm-compras/
+├── frontend/srm-compras-front/   # React 19 + Vite 8 + Tailwind v4
+└── backend/srm-compras-backend/  # Symfony 7.4 + PHP 8.2 + Doctrine ORM
 ```
 
-La aplicación estará disponible en **http://localhost:5173**.
-
-El servidor tiene recarga en caliente (HMR), por lo que cualquier cambio en el código se refleja automáticamente en el navegador sin necesidad de reiniciar.
-
----
-
-## Otros comandos disponibles
-
-```bash
-npm run build    # Genera el bundle optimizado para producción en /dist
-npm run preview  # Levanta un servidor local para previsualizar el build de producción
-npm run lint     # Ejecuta ESLint para detectar problemas en el código
-```
+El frontend consume la API REST del backend mediante `fetch` con cabeceras JWT. La comunicación es 100% JSON bajo el prefijo `/api/`.
 
 ---
 
 ## Stack tecnológico
 
-| Tecnología        | Versión | Rol                                  |
-| ----------------- | ------- | ------------------------------------ |
-| React             | 19      | UI                                   |
-| Vite              | 8       | Bundler / Dev server                 |
-| Tailwind CSS      | 4       | Estilos (utility-first)              |
-| @tailwindcss/vite | 4       | Plugin oficial de Tailwind para Vite |
-| React Router DOM  | 7       | Enrutamiento                         |
-| Material Symbols  | CDN     | Iconografía (Google Fonts)           |
-| Manrope           | CDN     | Tipografía principal                 |
+### Frontend
+
+| Tecnología          | Versión | Rol                                  |
+| ------------------- | ------- | ------------------------------------ |
+| React               | 19      | UI                                   |
+| Vite                | 8       | Bundler / Dev server                 |
+| Tailwind CSS        | v4      | Estilos (utility-first)              |
+| @tailwindcss/vite   | v4      | Plugin oficial de Tailwind para Vite |
+| React Router DOM    | v7      | Enrutamiento SPA                     |
+| Material Symbols    | CDN     | Iconografía                          |
+| Manrope             | CDN     | Tipografía principal                 |
+
+### Backend
+
+| Tecnología                         | Versión | Rol                              |
+| ---------------------------------- | ------- | -------------------------------- |
+| PHP                                | 8.2     | Lenguaje del servidor            |
+| Symfony                            | 7.4     | Framework                        |
+| Doctrine ORM                       | 3.x     | Mapeo objeto-relacional          |
+| MySQL                              | —       | Base de datos relacional         |
+| lexik/jwt-authentication-bundle    | 3.x     | Autenticación JWT                |
+| nelmio/cors-bundle                 | 2.x     | Gestión de CORS                  |
+| Doctrine Migrations                | 3.x     | Versionado del esquema de BD     |
+| Docker                             | —       | Contenedorización                |
 
 ---
 
-## Solución de problemas comunes
+## Instalación
 
-**`npm install` falla con errores de permisos (Windows)**
-Abre la terminal como Administrador o usa `npm install --legacy-peer-deps`.
+### Requisitos previos
 
-**La app carga pero no trae datos del backend**
-Verifica que el valor de `VITE_API_URL` en tu `.env` apunte al backend correcto y que ese servidor esté activo.
-
-**Puerto 5173 ocupado**
-Vite asignará automáticamente el siguiente puerto libre. También puedes forzar uno distinto ejecutando `npm run dev -- --port 3000`.
-
-**Cambios en `.env` no se reflejan**
-Las variables de entorno se leen al arrancar. Reinicia el servidor de desarrollo con `Ctrl + C` y vuelve a ejecutar `npm run dev`.
+| Herramienta | Versión mínima |
+| ----------- | -------------- |
+| Node.js     | 18+            |
+| npm         | 9+             |
+| PHP         | 8.2+           |
+| Composer    | 2+             |
+| MySQL       | 8+             |
+| Git         | cualquiera     |
 
 ---
 
-## Estructura de carpetas
+### Frontend
+
+```bash
+# 1. Clonar e instalar
+git clone https://github.com/<usuario>/srm-compras-front.git
+cd srm-compras-front
+npm install
+
+# 2. Crear el archivo de entorno
+echo "VITE_API_URL=http://127.0.0.1:8000/api" > .env
+
+# 3. Arrancar en desarrollo
+npm run dev
+# → http://localhost:5173
+```
+
+**Scripts disponibles**
+
+| Comando           | Descripción                               |
+| ----------------- | ----------------------------------------- |
+| `npm run dev`     | Servidor de desarrollo con HMR            |
+| `npm run build`   | Bundle de producción en `/dist`           |
+| `npm run preview` | Previsualiza el build de producción       |
+| `npm run lint`    | Analiza el código con ESLint              |
+
+---
+
+### Backend
+
+```bash
+# 1. Clonar e instalar dependencias
+git clone https://github.com/<usuario>/srm-compras-backend.git
+cd srm-compras-backend
+composer install
+
+# 2. Configurar entorno
+cp .env .env.local
+# Edita .env.local y ajusta DATABASE_URL y JWT_SECRET_KEY
+```
+
+**Variables de entorno clave (`.env.local`)**
+
+```env
+DATABASE_URL="mysql://usuario:contraseña@127.0.0.1:3306/srm_compras"
+JWT_SECRET_KEY=%kernel.project_dir%/config/jwt/private.pem
+JWT_PUBLIC_KEY=%kernel.project_dir%/config/jwt/public.pem
+JWT_PASSPHRASE=tu_passphrase
+```
+
+```bash
+# 3. Generar claves JWT
+php bin/console lexik:jwt:generate-keypair
+
+# 4. Crear la base de datos y ejecutar migraciones
+php bin/console doctrine:database:create
+php bin/console doctrine:migrations:migrate
+
+# 5. Arrancar el servidor de desarrollo
+symfony server:start
+# → http://127.0.0.1:8000
+
+# O con el servidor integrado de PHP:
+php -S 127.0.0.1:8000 -t public
+```
+
+#### Docker
+
+El backend incluye un `Dockerfile` listo para producción:
+
+```bash
+docker build -t srm-backend .
+docker run -p 8000:8000 -e DATABASE_URL="..." -e PORT=8000 srm-backend
+```
+
+El contenedor ejecuta automáticamente `cache:warmup` y las migraciones al arrancar.
+
+---
+
+## Estructura del proyecto
+
+### Frontend (`src/`)
 
 ```
 src/
-├── main.jsx                        # Punto de entrada; importa tailwind.css
-├── App.jsx                         # Renderiza <Providers />
 ├── app/
-│   ├── providers.jsx               # Wrapper de providers globales (Redux, React Query…)
-│   ├── router.jsx                  # createBrowserRouter con todas las rutas
-│   └── store.js                    # Configuración de Redux (si aplica)
-├── styles/
-│   ├── tailwind.css                # @import "tailwindcss" + @theme con todos los tokens
-│   └── base/                       # Variables, reset y tipografía legacy (no usados activamente)
+│   ├── AuthContext.jsx     # Contexto global de auth (token, user, login, logout)
+│   ├── providers.jsx       # Wrapper de providers globales
+│   └── router.jsx          # createBrowserRouter con rutas protegidas y públicas
 ├── components/
-│   ├── layout/
-│   │   ├── Sidebar.jsx             # Drawer fijo con navegación y widget de soporte
-│   │   ├── Header.jsx              # Barra superior: título, buscador y perfil de usuario
-│   │   └── MainLayout.jsx          # Combina Sidebar + Header + <main>{children}</main>
-│   └── ui/
-│       └── FloatingActionButton.jsx # Botón flotante (+) reutilizable
-├── features/
-│   ├── dashboard/
-│   │   ├── components/
-│   │   │   ├── SummaryCards.jsx    # Bento grid con 4 KPIs (Orders, Approvals, Spend, Quotes)
-│   │   │   ├── RecentActivity.jsx  # Tabla de pedidos recientes con badge de estado
-│   │   │   ├── ActionCard.jsx      # CTA "New Order" con fondo primario
-│   │   │   ├── SupplierHealth.jsx  # Lista de salud de proveedores principales
-│   │   │   └── SystemMessage.jsx   # Aviso informativo (audit report, etc.)
-│   │   ├── hooks/                  # Hooks específicos del dashboard
-│   │   ├── pages/
-│   │   │   └── DashboardPage.jsx   # Página principal: ensambla todos los componentes
-│   │   └── services/               # Llamadas API del dashboard
-│   ├── pedidos/                    # Feature de pedidos (estructura espejo)
-│   ├── productos/                  # Feature de productos (estructura espejo)
-│   ├── proveedores/                # Feature de proveedores (estructura espejo)
-│   └── usuarios/                  # Feature de usuarios (estructura espejo)
-├── hooks/                          # Hooks globales compartidos
+│   ├── layout/             # MainLayout, Header, Sidebar
+│   └── ui/                 # Modal, FloatingActionButton
+├── features/               # Arquitectura feature-based
+│   ├── auth/               # LoginPage
+│   ├── dashboard/          # KPIs, gráficos, alertas
+│   ├── ofertas/
+│   ├── contratos/
+│   ├── muestras/
+│   ├── importaciones/
+│   ├── proveedores/
+│   └── usuarios/
 ├── services/
-│   ├── apiClient.js                # Cliente HTTP base (axios / fetch configurado)
-│   └── endpoints/                  # Endpoints por recurso
-└── utils/                          # Utilidades genéricas
+│   └── apiClient.js        # Cliente HTTP base con JWT
+└── styles/
+    └── tailwind.css        # @theme con tokens de diseño
+```
+
+Cada feature sigue la estructura `pages/` + `components/` + `hooks/` + `services/`.
+
+### Backend (`src/`)
+
+```
+src/
+├── Controller/
+│   ├── AuthController.php          # POST /api/login, GET /api/me
+│   ├── UsuarioController.php       # CRUD /api/usuarios
+│   ├── ProveedorController.php     # CRUD /api/proveedores
+│   ├── ContratoController.php      # CRUD /api/contratos
+│   ├── MuestraController.php       # CRUD /api/muestras
+│   ├── OfertaController.php        # CRUD /api/ofertas
+│   └── ImportacionController.php   # CRUD /api/importaciones
+├── Entity/
+│   ├── Usuario.php
+│   ├── Proveedor.php
+│   ├── Contrato.php
+│   ├── Muestra.php
+│   ├── Oferta.php
+│   └── Importacion.php
+└── Repository/                     # Repositorios Doctrine por entidad
 ```
 
 ---
 
-## Sistema de diseño (Tailwind @theme)
+## API REST — Referencia rápida
 
-Los tokens del diseño están definidos en `src/styles/tailwind.css` dentro del bloque `@theme` y se consumen directamente como clases de Tailwind.
+**URL base:** `http://127.0.0.1:8000/api`  
+**Autenticación:** todas las rutas (excepto `/api/login`) requieren `Authorization: Bearer <token>`
 
-### Paleta de colores principal
+### Autenticación
 
-| Token                 | Valor     | Uso                               |
-| --------------------- | --------- | --------------------------------- |
-| `primary`             | `#276c00` | Acciones principales, botones CTA |
-| `primary-container`   | `#62c234` | Fondos de iconos, badges          |
-| `secondary`           | `#655880` | Elementos secundarios             |
-| `secondary-container` | `#e0d0ff` | Fondos secundarios                |
-| `tertiary`            | `#656100` | Alertas y estados de atención     |
-| `error`               | `#ba1a1a` | Estados de error                  |
-| `background`          | `#fafaf3` | Fondo global                      |
-| `surface`             | `#fafaf3` | Superficies de tarjetas           |
-| `on-surface`          | `#1a1c18` | Texto sobre superficies           |
+```
+POST /api/login   →  { token: "..." }
+GET  /api/me      →  { id, nombre, email, tipo, roles }
+```
 
-### Tipografía
+### Recursos
 
-Escala tipográfica basada en **Manrope**:
+| Recurso          | Endpoints                                    |
+| ---------------- | -------------------------------------------- |
+| Usuarios         | `GET /api/usuarios` · `GET /{id}` · `POST` · `PATCH /{id}` · `DELETE /{id}` |
+| Proveedores      | `GET /api/proveedores` · `GET /{id}` · `POST` · `PATCH /{id}` · `DELETE /{id}` |
+| Contratos        | `GET /api/contratos` · `GET /{id}` · `POST` · `PATCH /{id}` · `DELETE /{id}` |
+| Muestras         | `GET /api/muestras` · `GET /{id}` · `POST` · `PATCH /{id}` · `DELETE /{id}` |
+| Ofertas          | `GET /api/ofertas` · `GET /{id}` · `POST` · `PATCH /{id}` · `DELETE /{id}` |
+| Importaciones    | `GET /api/importaciones` · `GET /{id}` · `POST` · `PATCH /{id}` · `DELETE /{id}` |
 
-| Clase           | Tamaño | Peso | Uso                      |
-| --------------- | ------ | ---- | ------------------------ |
-| `text-h1`       | 40px   | 700  | Títulos de página        |
-| `text-h2`       | 32px   | 700  | KPIs y valores numéricos |
-| `text-h3`       | 24px   | 600  | Títulos de sección       |
-| `text-body-lg`  | 18px   | 400  | Párrafos grandes         |
-| `text-body-md`  | 16px   | 400  | Cuerpo de texto          |
-| `text-body-sm`  | 14px   | 400  | Texto de apoyo           |
-| `text-label-md` | 14px   | 600  | Etiquetas y navegación   |
-| `text-label-sm` | 12px   | 700  | Badges y micro-labels    |
+### Roles de usuario
 
-### Espaciado personalizado
-
-| Token                      | Valor |
-| -------------------------- | ----- |
-| `spacing-xs`               | 4px   |
-| `spacing-sm`               | 8px   |
-| `spacing-md`               | 16px  |
-| `spacing-lg`               | 24px  |
-| `spacing-xl`               | 32px  |
-| `spacing-gutter`           | 24px  |
-| `spacing-container-margin` | 40px  |
+| Tipo         | Permisos                                  |
+| ------------ | ----------------------------------------- |
+| `superadmin` | Acceso total, gestión de usuarios         |
+| `admin`      | CRUD en todos los módulos excepto usuarios |
+| `normal`     | Solo lectura                              |
 
 ---
 
-## Convenciones
+## Credenciales de demo
 
-- **Feature-based architecture**: cada módulo (`dashboard`, `pedidos`, etc.) tiene su propia carpeta con `components/`, `hooks/`, `pages/` y `services/`.
-- **Componentes de layout** en `src/components/layout/`, **componentes UI genéricos** en `src/components/ui/`.
-- Los estilos se escriben como **clases de Tailwind** directamente en JSX. No se crean archivos `.css` por componente salvo que sea estrictamente necesario.
-- Los **tokens de diseño** se definen una sola vez en `tailwind.css` y se reutilizan en toda la app.
-- **Rutas** declaradas en `src/app/router.jsx`. Cada feature expone su `Page` y `MainLayout` actúa de wrapper.
+```
+Email:    admin@srm.local
+Password: admin123
+```
+
+> Asegúrate de tener el servidor backend activo antes de iniciar sesión.
+
+---
+
+## Decisiones de diseño
+
+- **Feature-based architecture**: cada módulo de negocio es autocontenido, evitando el acoplamiento entre features.
+- **Contexto de autenticación global**: `AuthContext` expone `token`, `user`, `login` y `logout` sin librerías de estado externas.
+- **Tailwind v4 con Vite plugin**: integración sin archivo de configuración separado, usando `@tailwindcss/vite` directamente.
+- **Alertas reactivas en el dashboard**: calculadas en el cliente a partir de los datos de todos los módulos, sin endpoint dedicado.
+- **PATCH en lugar de PUT**: el backend acepta actualizaciones parciales, el frontend solo envía los campos modificados.
+- **Migraciones versionadas**: el esquema de base de datos evoluciona mediante Doctrine Migrations, facilitando el despliegue en CI/CD.
+
+---
+
+## Licencia
+
+MIT © 2025

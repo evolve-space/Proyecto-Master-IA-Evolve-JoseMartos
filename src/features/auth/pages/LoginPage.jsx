@@ -67,7 +67,7 @@ export default function LoginPage() {
                   autoComplete="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="superadmin"
+                  placeholder="usuario"
                   className="w-full pl-10 pr-4 py-2.5 border border-[#E2E4D9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#62C234]/40 focus:border-[#62C234] transition-all"
                 />
               </div>
@@ -134,7 +134,7 @@ export default function LoginPage() {
 
           {/* Hint */}
           <p className="text-xs text-slate-400 text-center mt-6">
-            Credenciales de prueba: <span className="font-mono">superadmin / superadmin</span>
+            Credenciales de prueba: <span className="font-mono">usuario / usuario</span>
           </p>
         </div>
       </div>

@@ -22,7 +22,7 @@ function F({ label, children }) {
   )
 }
 
-const EMPTY = { nombre: '', tipo: 'normal', password: '' }
+const EMPTY = { nombre: '', username: '', email: '', tipo: 'normal', password: '' }
 
 export default function UsersPage() {
   const [usuarios, setUsuarios]   = useState([])
@@ -59,15 +59,22 @@ export default function UsersPage() {
     e.preventDefault()
     setSaving(true)
     try {
+      const payload = { ...form }
+      // No enviar password vacío al editar
+      if (modal === 'edit' && !payload.password) delete payload.password
       if (modal === 'create') {
-        const created = await usuariosService.create(form)
+        const created = await usuariosService.create(payload)
         setUsuarios(prev => [...prev, created])
       } else {
-        const updated = await usuariosService.update(selected.id, form)
+        const updated = await usuariosService.update(selected.id, payload)
         setUsuarios(prev => prev.map(x => x.id === updated.id ? updated : x))
       }
       close()
-    } catch (e) { alert(e.message) }
+    } catch (err) {
+      if (err.status === 403) alert('Sin permisos para realizar esta acción.')
+      else if (err.status === 404) alert('Usuario no encontrado.')
+      else alert(err.message)
+    }
     finally { setSaving(false) }
   }
 
@@ -77,7 +84,11 @@ export default function UsersPage() {
       await usuariosService.remove(selected.id)
       setUsuarios(prev => prev.filter(x => x.id !== selected.id))
       close()
-    } catch (e) { alert(e.message) }
+    } catch (err) {
+      if (err.status === 403) alert('Sin permisos para realizar esta acción.')
+      else if (err.status === 404) alert('Usuario no encontrado.')
+      else alert(err.message)
+    }
     finally { setSaving(false) }
   }
 
@@ -87,7 +98,7 @@ export default function UsersPage() {
   const q = search.toLowerCase()
   const filtered = q
     ? usuarios.filter(u =>
-        [u.nombre, u.tipo].some(v => (v ?? '').toLowerCase().includes(q))
+        [u.nombre, u.username, u.email, u.tipo].some(v => (v ?? '').toLowerCase().includes(q))
       )
     : usuarios
 
@@ -122,6 +133,7 @@ export default function UsersPage() {
               <tr>
                 <th className="px-6 py-4">Id</th>
                 <th className="px-6 py-4">Nombre</th>
+                <th className="px-6 py-4">Usuario</th>
                 <th className="px-6 py-4">Tipo</th>
                 <th className="px-6 py-4" />
               </tr>
@@ -138,9 +150,13 @@ export default function UsersPage() {
                       <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-white text-xs font-bold">
                         {u.nombre.split(' ').map(n => n[0]).join('').slice(0, 2)}
                       </div>
-                      <span className="font-label-md text-on-surface">{u.nombre}</span>
+                      <div>
+                        <div className="font-label-md text-on-surface">{u.nombre}</div>
+                        {u.email && <div className="text-xs text-slate-400">{u.email}</div>}
+                      </div>
                     </div>
                   </td>
+                  <td className="px-6 py-4 text-body-sm text-slate-500 font-mono">{u.username}</td>
                   <td className="px-6 py-4">
                     <span className={`px-3 py-1 rounded-full text-[12px] font-bold ${tipoStyle[u.tipo] ?? 'bg-slate-100 text-slate-500'}`}>
                       {tipoLabel[u.tipo] ?? u.tipo}
@@ -172,9 +188,20 @@ export default function UsersPage() {
         <Modal title={modal === 'create' ? 'Nuevo Usuario' : `Editar: ${selected.nombre}`} onClose={close} size="sm">
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <F label="Nombre *"><input required value={form.nombre} onChange={e => set('nombre', e.target.value)} className={inp} /></F>
-            {modal === 'create' && (
-              <F label="Contraseña *"><input required type="password" value={form.password ?? ''} onChange={e => set('password', e.target.value)} className={inp} placeholder="Mínimo 8 caracteres" /></F>
-            )}
+            <F label="Usuario *"><input required value={form.username ?? ''} onChange={e => set('username', e.target.value)} className={inp} placeholder="ej: ana.garcia" /></F>
+            <F label="Email">
+              <input type="email" value={form.email ?? ''} onChange={e => set('email', e.target.value)} className={inp} placeholder="ej: ana@empresa.com" />
+            </F>
+            <F label={modal === 'create' ? 'Contraseña *' : 'Nueva contraseña (opcional)'}>
+              <input
+                required={modal === 'create'}
+                type="password"
+                value={form.password ?? ''}
+                onChange={e => set('password', e.target.value)}
+                className={inp}
+                placeholder="Mínimo 8 caracteres"
+              />
+            </F>
             <F label="Tipo *">
               <select required value={form.tipo ?? 'normal'} onChange={e => set('tipo', e.target.value)} className={inp}>
                 <option value="normal">Usuario</option>

@@ -24,8 +24,19 @@ async function request(endpoint, options = {}) {
       // Token expirado o inválido — limpiar sesión
       localStorage.removeItem("token");
       window.location.href = "/login";
+      return;
     }
-    const error = new Error(`HTTP ${response.status}: ${response.statusText}`);
+
+    // Intentar leer el campo `error` del body para mostrar mensaje preciso
+    let message = `HTTP ${response.status}: ${response.statusText}`;
+    try {
+      const body = await response.json();
+      if (body?.error) message = body.error;
+    } catch (_) {
+      /* ignorar errores de parseo */
+    }
+
+    const error = new Error(message);
     error.status = response.status;
     throw error;
   }

@@ -5,5 +5,6 @@ export const usuariosService = {
   getOne: (id) => apiClient.get(`/usuarios/${id}`),
   create: (body) => apiClient.post("/usuarios", body),
   update: (id, body) => apiClient.patch(`/usuarios/${id}`, body),
+  replace: (id, body) => apiClient.put(`/usuarios/${id}`, body),
   remove: (id) => apiClient.delete(`/usuarios/${id}`),
 };
