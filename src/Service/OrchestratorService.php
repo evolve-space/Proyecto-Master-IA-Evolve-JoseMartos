@@ -120,7 +120,7 @@ PROMPT;
         try {
             $response = $this->httpClient->request('POST', 'https://api.openai.com/v1/chat/completions', [
                 'headers' => [
-                    'Authorization' => 'Bearer ' . $this->openAiApiKey,
+                    'Authorization' => 'Bearer ' . trim($this->openAiApiKey),
                     'Content-Type'  => 'application/json',
                 ],
                 'json' => [

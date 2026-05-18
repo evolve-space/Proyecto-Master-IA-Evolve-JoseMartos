@@ -98,7 +98,7 @@ abstract class AbstractAgent implements AgentInterface
         for ($i = 0; $i < self::MAX_ITERATIONS; $i++) {
             $response = $this->httpClient->request('POST', 'https://api.openai.com/v1/chat/completions', [
                 'headers' => [
-                    'Authorization' => 'Bearer ' . $this->openAiApiKey,
+                    'Authorization' => 'Bearer ' . trim($this->openAiApiKey),
                     'Content-Type'  => 'application/json',
                 ],
                 'json' => [
