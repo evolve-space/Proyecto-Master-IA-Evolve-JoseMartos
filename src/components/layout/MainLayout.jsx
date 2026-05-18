@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import Sidebar from './Sidebar'
 import Header from './Header'
+import ChatBubble from '../ui/ChatBubble'
 
 export default function MainLayout({ children, headerTitle }) {
   // En móvil el sidebar empieza cerrado; en desktop empieza abierto
@@ -42,6 +43,8 @@ export default function MainLayout({ children, headerTitle }) {
           {children}
         </main>
       </div>
+
+      <ChatBubble />
     </div>
   )
 }

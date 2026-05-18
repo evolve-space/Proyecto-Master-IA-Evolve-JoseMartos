@@ -2,7 +2,6 @@
 import { ofertasService } from '../services/ofertasService'
 import { proveedoresService } from '../../proveedores/services/proveedoresService'
 import Modal from '../../../components/ui/Modal'
-import FloatingActionButton from '../../../components/ui/FloatingActionButton'
 
 const tipoStyle = {
   Contrato: 'bg-primary-container/20 text-primary',
@@ -304,8 +303,6 @@ export default function OfertasPage() {
           </div>
         </Modal>
       )}
-
-      <FloatingActionButton onClick={openCreate} />
     </div>
   )
 }

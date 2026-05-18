@@ -3,7 +3,6 @@ import { muestrasService } from '../services/muestrasService'
 import { proveedoresService } from '../../proveedores/services/proveedoresService'
 import { usuariosService } from '../../usuarios/services/usuariosService'
 import Modal from '../../../components/ui/Modal'
-import FloatingActionButton from '../../../components/ui/FloatingActionButton'
 
 const estadoStyle = {
   'Análisis':  'bg-secondary-container text-secondary',
@@ -290,8 +289,6 @@ export default function MuestrasPage() {
           </div>
         </Modal>
       )}
-
-      <FloatingActionButton onClick={openCreate} />
     </div>
   )
 }

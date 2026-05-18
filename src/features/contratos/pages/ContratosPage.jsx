@@ -2,7 +2,6 @@
 import { contratosService } from '../services/contratosService'
 import { proveedoresService } from '../../proveedores/services/proveedoresService'
 import Modal from '../../../components/ui/Modal'
-import FloatingActionButton from '../../../components/ui/FloatingActionButton'
 
 const gradoStyle = {
   BIO:   'bg-green-100 text-green-700',
@@ -295,8 +294,6 @@ export default function ContratosPage() {
           </div>
         </Modal>
       )}
-
-      <FloatingActionButton onClick={openCreate} />
     </div>
   )
 }

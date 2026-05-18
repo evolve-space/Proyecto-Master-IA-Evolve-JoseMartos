@@ -1,7 +1,6 @@
 ﻿import { useState, useEffect } from 'react'
 import { usuariosService } from '../services/usuariosService'
 import Modal from '../../../components/ui/Modal'
-import FloatingActionButton from '../../../components/ui/FloatingActionButton'
 
 const tipoLabel = { superadmin: 'Superadmin', admin: 'Administrador', normal: 'Usuario' }
 
@@ -230,8 +229,6 @@ export default function UsersPage() {
           </div>
         </Modal>
       )}
-
-      <FloatingActionButton onClick={openCreate} />
     </div>
   )
 }

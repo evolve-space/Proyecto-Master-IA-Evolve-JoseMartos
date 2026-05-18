@@ -2,7 +2,6 @@
 import { importacionesService } from '../services/importacionesService'
 import { proveedoresService } from '../../proveedores/services/proveedoresService'
 import Modal from '../../../components/ui/Modal'
-import FloatingActionButton from '../../../components/ui/FloatingActionButton'
 
 const inp = 'w-full border border-[#E2E4D9] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary'
 
@@ -290,8 +289,6 @@ export default function ImportacionesPage() {
           </div>
         </Modal>
       )}
-
-      <FloatingActionButton onClick={openCreate} />
     </div>
   )
 }

@@ -1,7 +1,6 @@
 ﻿import { useState, useEffect } from 'react'
 import { proveedoresService } from '../services/proveedoresService'
 import Modal from '../../../components/ui/Modal'
-import FloatingActionButton from '../../../components/ui/FloatingActionButton'
 
 const tipoStyle = {
   Fabricante:   'bg-primary-container/20 text-primary',
@@ -280,8 +279,6 @@ export default function ProvidersPage() {
           </div>
         </Modal>
       )}
-
-      <FloatingActionButton onClick={openCreate} />
     </div>
   )
 }
