@@ -8,6 +8,9 @@ RUN apt-get update && apt-get install -y \
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 ENV COMPOSER_ALLOW_SUPERUSER=1
+# OPENAI_API_KEY debe pasarse como variable de entorno al arrancar el contenedor
+# (docker run -e OPENAI_API_KEY=sk-proj-... o en el panel de Railway/variables de entorno)
+# NUNCA pongas la clave directamente aquí.
 
 WORKDIR /app
 
