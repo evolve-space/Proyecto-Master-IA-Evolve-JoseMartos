@@ -123,7 +123,7 @@ La aplicación dispone actualmente de un entorno funcional desplegado en producc
 
 🌐 URL de acceso:
 
-https://srm-compras-front.vercel.app/login
+https://srm-compras-front.vercel.app/
 
 ---
 
