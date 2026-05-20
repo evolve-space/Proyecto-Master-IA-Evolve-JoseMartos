@@ -86,6 +86,31 @@ export default function ImportacionesPage() {
     finally { setSaving(false) }
   }
 
+  const handleGeneratePdf = async (item) => {
+    setSaving(true)
+    try {
+      const result = await importacionesService.generatePdf(item)
+      if (result instanceof Blob) {
+        const url = window.URL.createObjectURL(result)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `importacion-${item.id || 'pedido'}.pdf`
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        window.URL.revokeObjectURL(url)
+      } else if (result?.message) {
+        alert(result.message)
+      } else {
+        alert('PDF generado correctamente.')
+      }
+    } catch (e) {
+      alert(`Error generando PDF: ${e.message}`)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   if (loading) return <p className="p-lg text-slate-500">Cargando importaciones…</p>
   if (error)   return <p className="p-lg text-red-500">Error: {error}</p>
 
@@ -188,6 +213,9 @@ export default function ImportacionesPage() {
                       <div className="absolute right-6 top-10 z-10 bg-white border border-[#E2E4D9] rounded-lg shadow-lg py-1 min-w-[150px]" onClick={e => e.stopPropagation()}>
                         <button onClick={() => { openDetail(i); setMenuOpen(null) }} className="flex items-center gap-2 w-full px-4 py-2 text-sm hover:bg-slate-50 text-slate-700">
                           <span className="material-symbols-outlined text-base">visibility</span> Ver detalle
+                        </button>
+                        <button onClick={() => { handleGeneratePdf(i); setMenuOpen(null) }} className="flex items-center gap-2 w-full px-4 py-2 text-sm hover:bg-slate-50 text-slate-700">
+                          <span className="material-symbols-outlined text-base">picture_as_pdf</span> Generar PDF
                         </button>
                         <button onClick={() => { openEdit(i); setMenuOpen(null) }} className="flex items-center gap-2 w-full px-4 py-2 text-sm hover:bg-slate-50 text-slate-700">
                           <span className="material-symbols-outlined text-base">edit</span> Editar
