@@ -1,47 +1,47 @@
-﻿# ProcureFlow AI
+# ProcureFlow AI
 
-Plataforma inteligente y personalizable de gesti├│n de proveedores (SRM) y automatizaci├│n empresarial impulsada por inteligencia artificial.
+Plataforma inteligente y personalizable de gestión de proveedores (SRM) y automatización empresarial impulsada por inteligencia artificial.
 
 ---
 
-# Descripci├│n del proyecto
+# Descripción del proyecto
 
-Muchas peque├▒as y medianas empresas contin├║an gestionando proveedores mediante procesos manuales, hojas de c├ílculo o herramientas poco adaptadas a sus necesidades reales. Esto provoca p├®rdida de tiempo, falta de trazabilidad, procesos desorganizados y dificultades para escalar operaciones internas.
+Muchas pequeñas y medianas empresas continúan gestionando proveedores mediante procesos manuales, hojas de cálculo o herramientas poco adaptadas a sus necesidades reales. Esto provoca pérdida de tiempo, falta de trazabilidad, procesos desorganizados y dificultades para escalar operaciones internas.
 
-ProcureFlow AI nace como una soluci├│n SRM (Supplier Relationship Management) moderna orientada a digitalizar y centralizar la gesti├│n de proveedores, automatizar flujos empresariales e integrar inteligencia artificial dentro de procesos reales de negocio.
+ProcureFlow AI nace como una solución SRM (Supplier Relationship Management) moderna orientada a digitalizar y centralizar la gestión de proveedores, automatizar flujos empresariales e integrar inteligencia artificial dentro de procesos reales de negocio.
 
-A diferencia de los CRMs tradicionales enfocados en clientes, ProcureFlow AI pone el foco en la relaci├│n con proveedores y la optimizaci├│n interna de procesos empresariales relacionados con compras, organizaci├│n documental, automatizaci├│n y gesti├│n operativa.
+A diferencia de los CRMs tradicionales enfocados en clientes, ProcureFlow AI pone el foco en la relación con proveedores y la optimización interna de procesos empresariales relacionados con compras, organización documental, automatización y gestión operativa.
 
-La plataforma ha sido desarrollada tomando como referencia un caso de uso empresarial real que necesitaba una soluci├│n flexible, escalable y moderna para sustituir procesos manuales y preparar la infraestructura para automatizaci├│n avanzada mediante IA.
+La plataforma ha sido desarrollada tomando como referencia un caso de uso empresarial real que necesitaba una solución flexible, escalable y moderna para sustituir procesos manuales y preparar la infraestructura para automatización avanzada mediante IA.
 
 ---
 
 # Objetivos del proyecto
 
-- Centralizar la gesti├│n de proveedores
+- Centralizar la gestión de proveedores
 - Digitalizar procesos empresariales internos
 - Reducir tareas manuales y repetitivas
 - Facilitar la escalabilidad operativa
-- Integrar automatizaci├│n e inteligencia artificial en flujos reales
+- Integrar automatización e inteligencia artificial en flujos reales
 - Crear una arquitectura modular adaptable a distintos sectores empresariales
 
 ---
 
-# Caracter├¡sticas principales
+# Características principales
 
-- Gesti├│n centralizada de proveedores
+- Gestión centralizada de proveedores
 - Panel administrativo moderno y responsive
-- Automatizaci├│n de procesos empresariales
-- Integraci├│n de inteligencia artificial
+- Automatización de procesos empresariales
+- Integración de inteligencia artificial
 - Arquitectura modular y escalable
-- Sistema preparado para automatizaci├│n avanzada
-- Integraci├│n con APIs y servicios externos
+- Sistema preparado para automatización avanzada
+- Integración con APIs y servicios externos
 - Infraestructura adaptable a distintos tipos de empresa
-- Sistema preparado para evoluci├│n mediante workflows inteligentes
+- Sistema preparado para evolución mediante workflows inteligentes
 
 ---
 
-# Tecnolog├¡as utilizadas
+# Tecnologías utilizadas
 
 ## Frontend
 - React
@@ -58,7 +58,7 @@ La plataforma ha sido desarrollada tomando como referencia un caso de uso empres
 
 ## Inteligencia Artificial
 - OpenAI API
-- Automatizaci├│n mediante LLMs
+- Automatización mediante LLMs
 
 ## DevOps
 - Docker
@@ -67,15 +67,15 @@ La plataforma ha sido desarrollada tomando como referencia un caso de uso empres
 
 # Arquitectura del proyecto
 
-La aplicaci├│n sigue una arquitectura modular separada por responsabilidades para facilitar mantenimiento, escalabilidad y evoluci├│n futura del sistema.
+La aplicación sigue una arquitectura modular separada por responsabilidades para facilitar mantenimiento, escalabilidad y evolución futura del sistema.
 
 ```txt
 Frontend React
-        Ôåô
+        ↓
 Backend Symfony API
-        Ôåô
-Servicios IA y automatizaci├│n
-        Ôåô
+        ↓
+Servicios IA y automatización
+        ↓
 Base de datos MySQL
 ```
 
@@ -84,44 +84,44 @@ Base de datos MySQL
 # Estructura del proyecto
 
 ```txt
-frontend/        ÔåÆ Aplicaci├│n frontend desarrollada en React
-backend/         ÔåÆ API y l├│gica empresarial desarrollada en Symfony
-services/        ÔåÆ Servicios de automatizaci├│n e integraci├│n IA
-database/        ÔåÆ Scripts y estructura de base de datos
-docs/            ÔåÆ Documentaci├│n adicional
-screenshots/     ÔåÆ Capturas de la aplicaci├│n
+frontend/        → Aplicación frontend desarrollada en React
+backend/         → API y lógica empresarial desarrollada en Symfony
+services/        → Servicios de automatización e integración IA
+database/        → Scripts y estructura de base de datos
+docs/            → Documentación adicional
+screenshots/     → Capturas de la aplicación
 ```
 
-Las carpetas `frontend` y `backend` incluyen documentaci├│n y README independientes con informaci├│n t├®cnica detallada sobre arquitectura, instalaci├│n y funcionamiento interno de cada m├│dulo.
+Las carpetas `frontend` y `backend` incluyen documentación y README independientes con información técnica detallada sobre arquitectura, instalación y funcionamiento interno de cada módulo.
 
 ---
 
 # Funcionalidades principales
 
-## Gesti├│n de proveedores
-Registro, organizaci├│n y administraci├│n centralizada de proveedores desde un entorno moderno y accesible.
+## Gestión de proveedores
+Registro, organización y administración centralizada de proveedores desde un entorno moderno y accesible.
 
-## Automatizaci├│n empresarial
-Optimizaci├│n de tareas repetitivas y procesos internos mediante automatizaci├│n inteligente.
+## Automatización empresarial
+Optimización de tareas repetitivas y procesos internos mediante automatización inteligente.
 
 ## Inteligencia artificial aplicada
-Integraci├│n de modelos LLM para asistencia contextual, automatizaci├│n y apoyo a procesos empresariales.
+Integración de modelos LLM para asistencia contextual, automatización y apoyo a procesos empresariales.
 
 ## Arquitectura adaptable
 Sistema preparado para adaptarse a distintos sectores empresariales y futuras ampliaciones funcionales.
 
 ## Plataforma modular
-Separaci├│n de frontend, backend y servicios de automatizaci├│n para facilitar evoluci├│n y mantenimiento.
+Separación de frontend, backend y servicios de automatización para facilitar evolución y mantenimiento.
 
 ---
 
-# Demo en producci├│n
+# Demo en producción
 
-La aplicaci├│n dispone actualmente de un entorno funcional desplegado en producci├│n para pruebas y demostraci├│n.
+La aplicación dispone actualmente de un entorno funcional desplegado en producción para pruebas y demostración.
 
 ## Acceso a la plataforma
 
-­ƒîÉ URL de acceso:
+🔗 URL de acceso:
 
 https://srm-compras-front.vercel.app/
 
@@ -133,24 +133,24 @@ https://srm-compras-front.vercel.app/
 
 ```txt
 Usuario: usuario
-Contrase├▒a: usuario
+Contraseña: usuario
 ```
 
 ---
 
 # Funcionalidades disponibles en demo
 
-- Gesti├│n de proveedores
+- Gestión de proveedores
 - Panel administrativo
-- Automatizaci├│n de procesos
-- Integraci├│n IA
-- Gesti├│n de usuarios
+- Automatización de procesos
+- Integración IA
+- Gestión de usuarios
 - Arquitectura modular
-- Sistema de autenticaci├│n y roles
+- Sistema de autenticación y roles
 
 ---
 
-# Ejecuci├│n local
+# Ejecución local
 
 ## Requisitos
 
@@ -184,46 +184,52 @@ symfony server:start
 
 # Resultados principales
 
-- Plataforma full stack funcional desplegada en producci├│n
+- Plataforma full stack funcional desplegada en producción
 - Arquitectura modular y escalable
-- Digitalizaci├│n de procesos empresariales
-- Automatizaci├│n aplicada a gesti├│n de proveedores
-- Integraci├│n de inteligencia artificial orientada a negocio
-- Infraestructura preparada para futuras ampliaciones y automatizaci├│n avanzada
+- Digitalización de procesos empresariales
+- Automatización aplicada a gestión de proveedores
+- Integración de inteligencia artificial orientada a negocio
+- Infraestructura preparada para futuras ampliaciones y automatización avanzada
 
 ---
 
-# Capturas de la aplicaci├│n
+# Capturas de la aplicación
 
 ## Dashboard principal
 
+```html
 <img width="1877" height="919" alt="image" src="https://github.com/user-attachments/assets/c59686eb-ae20-4b9a-9d71-ac9826a69eff" />
+```
 
-## Gesti├│n de proveedores
+## Gestión de proveedores
 
+```html
 <img width="1891" height="636" alt="image" src="https://github.com/user-attachments/assets/168a4e0b-24d9-4e4c-8508-8a47049b848c" />
+```
 
 ## Asistente IA
 
+```html
 <img width="1897" height="924" alt="image" src="https://github.com/user-attachments/assets/c3f46374-46bf-43eb-9351-fa22cff63d27" />
+```
 
 ---
 
 # Futuras mejoras
 
-- Automatizaci├│n avanzada mediante agentes IA
-- Gesti├│n documental inteligente
-- Sistema avanzado de m├®tricas y an├ílisis
-- Integraci├│n con ERPs y plataformas externas
-- Workflows configurables y automatizaci├│n avanzada
+- Automatización avanzada mediante agentes IA
+- Gestión documental inteligente
+- Sistema avanzado de métricas y análisis
+- Integración con ERPs y plataformas externas
+- Workflows configurables y automatización avanzada
 - Sistema avanzado de notificaciones y seguimiento
 
 ---
 
-# Conclusi├│n
+# Conclusión
 
-ProcureFlow AI representa una aproximaci├│n moderna a la gesti├│n de proveedores, combinando automatizaci├│n, arquitectura modular e inteligencia artificial para transformar procesos empresariales tradicionales en flujos digitales m├ís eficientes, escalables y preparados para el futuro.
+ProcureFlow AI representa una aproximación moderna a la gestión de proveedores, combinando automatización, arquitectura modular e inteligencia artificial para transformar procesos empresariales tradicionales en flujos digitales más eficientes, escalables y preparados para el futuro.
 
 ---
 
-Proyecto acad├®mico desarrollado durante el M├íster en Inteligencia Artificial de Evolve.
+Proyecto académico desarrollado durante el Máster en Inteligencia Artificial de Evolve.
