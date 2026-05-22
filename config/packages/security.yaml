@@ -5,9 +5,7 @@ security:
 
     providers:
         app_user_provider:
-            entity:
-                class: App\Entity\Usuario
-                property: username
+            id: App\Security\UsuarioUserProvider
 
     firewalls:
         dev:
@@ -17,9 +15,10 @@ security:
         login:
             pattern: ^/api/login
             stateless: true
+            provider: app_user_provider
             json_login:
                 check_path: /api/login
-                username_path: username
+                username_path: email
                 password_path: password
                 success_handler: lexik_jwt_authentication.handler.authentication_success
                 failure_handler: lexik_jwt_authentication.handler.authentication_failure
