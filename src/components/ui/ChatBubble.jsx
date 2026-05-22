@@ -2,6 +2,10 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useAuth } from '../../app/AuthContext'
 import { sendMessage } from '../../features/chat/services/chatService'
+import {
+  handleImportacionesChatAction,
+  executeChatActions,
+} from '../../features/chat/services/chatImportacionesActions'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
@@ -38,7 +42,7 @@ const SPECIALIST_AGENTS = [
     color: '#006874',
     shortLabel: 'Importaciones',
     description:
-      'Soy **Noa**, especialista en **importaciones y logística**.\n\nPuedo ayudarte a:\n- Consultar importaciones por proveedor, producto o fechas\n- Calcular el coste real por kg (aranceles, flete, despacho…)\n- Comparar tipos de cambio entre importaciones\n- Registrar o actualizar importaciones *(según tu rol)*\n\nPregúntame, por ejemplo: *«¿Cuánto nos costó la última importación de vainilla?»*',
+      'Soy **Noa**, especialista en **importaciones y logística**.\n\nPuedo ayudarte a consultar importaciones, costes, logística, etc.\nPara **generar el PDF** (mismo botón que en Importaciones), escribe por ejemplo: *«genera el pdf de la importación #3»*.',
   },
   {
     id: 'iris',
@@ -348,7 +352,7 @@ export default function ChatBubble() {
 
   // Limpiar conversación
   const handleClear = useCallback(() => {
-    setMessages([INITIAL_MESSAGE])
+    setMessages([buildWelcomeMessage()])
   }, [])
 
   async function handleSend() {
@@ -362,13 +366,50 @@ export default function ChatBubble() {
     setLoading(true)
 
     try {
+      if (!token) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: '⚠️ Debes iniciar sesión para usar el asistente.',
+            agent: { name: 'SRM', id: 'default' },
+          },
+        ])
+        return
+      }
+
+      const historyForTools = nextHistory.map(({ role, content }) => ({ role, content }))
+
+      const noaAction = await handleImportacionesChatAction(text, historyForTools)
+      if (noaAction.handled) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: noaAction.reply,
+            agent: noaAction.agent ?? { name: 'Noa', id: 'noa' },
+          },
+        ])
+        return
+      }
+
       const context = {
         userId: user?.id ?? null,
         userRole: user?.tipo ?? 'normal',
         currentPage: location.pathname.replace('/', '') || 'dashboard',
       }
-      const { reply, agent } = await sendMessage(text, nextHistory, token, context)
-      setMessages((prev) => [...prev, { role: 'assistant', content: reply, agent }])
+      const { reply, agent, actions } = await sendMessage(text, nextHistory, token, context)
+
+      const actionResult = await executeChatActions(actions)
+      const finalReply = actionResult?.reply
+        ? `${reply}\n\n${actionResult.reply}`
+        : reply
+      const finalAgent = actionResult?.agent ?? agent
+
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: finalReply, agent: finalAgent },
+      ])
     } catch (err) {
       let content =
         '⚠️ No se pudo conectar con el agente. Comprueba que el backend esté en marcha (`http://localhost:8000`) e inténtalo de nuevo.'

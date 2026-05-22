@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect } from 'react'
 import { importacionesService } from '../services/importacionesService'
+import { downloadImportacionPdf } from '../utils/downloadImportacionPdf'
 import { proveedoresService } from '../../proveedores/services/proveedoresService'
 import Modal from '../../../components/ui/Modal'
 
@@ -91,21 +92,12 @@ export default function ImportacionesPage() {
     try {
       const result = await importacionesService.generatePdf(item)
       if (result instanceof Blob) {
-        const url = window.URL.createObjectURL(result)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `importacion-${item.id || 'pedido'}.pdf`
-        document.body.appendChild(a)
-        a.click()
-        a.remove()
-        window.URL.revokeObjectURL(url)
-      } else if (result?.message) {
-        alert(result.message)
-      } else {
-        alert('PDF generado correctamente.')
+        downloadImportacionPdf(result, item.id)
+        return
       }
+      if (result?.message) alert(result.message)
     } catch (e) {
-      alert(`Error generando PDF: ${e.message}`)
+      alert(`No se pudo generar el PDF.\n\n${e?.message || 'Error desconocido'}`)
     } finally {
       setSaving(false)
     }

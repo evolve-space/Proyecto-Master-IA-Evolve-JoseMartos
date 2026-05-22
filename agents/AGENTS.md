@@ -168,6 +168,7 @@ Rafa: Sí, encontré 3 ofertas activas para ácido cítrico:
 - Comparar tipo de cambio entre importaciones
 - Detectar importaciones sin documentación completa
 - Calcular totales anuales de importación
+- Generar y descargar PDF de una importación (`generate_importacion_pdf` — webhook n8n en el frontend)
 
 **Capacidades de escritura (rol `admin` / `superadmin`):**
 
@@ -312,6 +313,16 @@ Content-Type: application/json
     "name": "Carmen",
     "id": "carmen"
   }
+}
+```
+
+**Acciones opcionales** (el frontend las ejecuta tras la respuesta):
+
+```json
+{
+  "reply": "Genero el PDF de esa importación.",
+  "agent": { "name": "Noa", "id": "noa" },
+  "actions": [{ "type": "generate_importacion_pdf", "importacionId": 3 }]
 }
 ```
 
@@ -519,7 +530,7 @@ srm-agentes/
 - [ ] `srm_client.py` — cliente HTTP con inyección de JWT y manejo de errores
 - [ ] Agent Carmen — tools: `list_contratos`, `list_proveedores`, `get_contrato`, `create_contrato`, `update_contrato`
 - [ ] Agent Rafa — tools: `list_ofertas`, `compare_ofertas`, `create_oferta`
-- [ ] Agent Noa — tools: `list_importaciones`, `calc_coste_real`, `create_importacion`
+- [ ] Agent Noa — tools: `list_importaciones`, `calc_coste_real`, `create_importacion`, `generate_importacion_pdf`
 - [ ] Agent Iris — tools: `list_muestras`, `update_estado_muestra`, `create_muestra`
 - [ ] Agent Alex — tools: `list_usuarios`, `create_usuario`, `update_usuario` _(protegido por rol)_
 - [ ] Directiva de confirmación antes de escrituras
