@@ -197,21 +197,15 @@ symfony server:start
 
 ## Dashboard principal
 
-```html
 <img width="1877" height="919" alt="image" src="https://github.com/user-attachments/assets/c59686eb-ae20-4b9a-9d71-ac9826a69eff" />
-```
 
 ## Gestión de proveedores
 
-```html
 <img width="1891" height="636" alt="image" src="https://github.com/user-attachments/assets/168a4e0b-24d9-4e4c-8508-8a47049b848c" />
-```
 
 ## Asistente IA
 
-```html
 <img width="1897" height="924" alt="image" src="https://github.com/user-attachments/assets/c3f46374-46bf-43eb-9351-fa22cff63d27" />
-```
 
 ---
 
