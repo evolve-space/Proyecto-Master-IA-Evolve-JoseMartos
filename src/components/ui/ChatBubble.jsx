@@ -5,28 +5,111 @@ import { sendMessage } from '../../features/chat/services/chatService'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
-// ─── Persistencia ────────────────────────────────────────────────────────────
-const STORAGE_KEY = 'srm_chat_history'
-
-const INITIAL_MESSAGE = {
-  role: 'assistant',
-  content: '¡Hola! Soy el asistente de SRM Compras. ¿En qué puedo ayudarte hoy?',
-  agent: { name: 'SRM', id: 'default' },
+// ─── Agentes del sistema ─────────────────────────────────────────────────────
+const PRIMARY_AGENT = {
+  id: 'default',
+  name: 'SRM',
+  color: '#1a237e',
+  tagline: 'Asistente principal',
+  description:
+    'Coordino el sistema multiagente: analizo tu consulta y te conecto con el especialista adecuado. Puedes escribirme directamente o elegir un agente secundario para ver en qué puede ayudarte.',
 }
 
-function loadMessages() {
+const SPECIALIST_AGENTS = [
+  {
+    id: 'carmen',
+    name: 'Carmen',
+    color: '#276c00',
+    shortLabel: 'Proveedores',
+    description:
+      'Soy **Carmen**, especialista en **proveedores y contratos**.\n\nPuedo ayudarte a:\n- Buscar y filtrar proveedores (tipo, certificación, forma de pago…)\n- Ver contratos vigentes, caducados o próximos a vencer\n- Calcular cantidades pendientes y alertar caducidades\n- Crear o editar proveedores y contratos *(según tu rol)*\n\nPregúntame, por ejemplo: *«¿Qué contratos caducan este mes?»*',
+  },
+  {
+    id: 'rafa',
+    name: 'Rafa',
+    color: '#655880',
+    shortLabel: 'Ofertas',
+    description:
+      'Soy **Rafa**, especialista en **ofertas y pedidos**.\n\nPuedo ayudarte a:\n- Listar y comparar ofertas por producto, precio, moneda o incoterm\n- Comparar ofertas con el precio del contrato vigente\n- Identificar ofertas con muestra solicitada\n- Crear o editar ofertas *(según tu rol)*\n\nPregúntame, por ejemplo: *«¿Tenemos ofertas de ácido cítrico?»*',
+  },
+  {
+    id: 'noa',
+    name: 'Noa',
+    color: '#006874',
+    shortLabel: 'Importaciones',
+    description:
+      'Soy **Noa**, especialista en **importaciones y logística**.\n\nPuedo ayudarte a:\n- Consultar importaciones por proveedor, producto o fechas\n- Calcular el coste real por kg (aranceles, flete, despacho…)\n- Comparar tipos de cambio entre importaciones\n- Registrar o actualizar importaciones *(según tu rol)*\n\nPregúntame, por ejemplo: *«¿Cuánto nos costó la última importación de vainilla?»*',
+  },
+  {
+    id: 'iris',
+    name: 'Iris',
+    color: '#656100',
+    shortLabel: 'Muestras',
+    description:
+      'Soy **Iris**, especialista en **muestras y calidad**.\n\nPuedo ayudarte a:\n- Listar muestras por estado (Pendiente, Análisis, Compra)\n- Buscar por proveedor, producto, lote o certificación (BIO, HALAL…)\n- Ver el historial de muestras de un proveedor\n- Registrar muestras y actualizar su estado\n\nPregúntame, por ejemplo: *«¿Qué muestras hay en análisis ahora?»*',
+  },
+  {
+    id: 'alex',
+    name: 'Alex',
+    color: '#8b4513',
+    shortLabel: 'Administración',
+    adminOnly: true,
+    description:
+      'Soy **Alex**, especialista en **administración y sistema**.\n\nPuedo ayudarte a:\n- Listar usuarios, roles y permisos\n- Consultar estadísticas generales del sistema\n- Crear o editar usuarios *(según tu rol)*\n\nPregúntame, por ejemplo: *«¿Cuántos contratos activos hay?»* o *«Lista los usuarios admin»*',
+  },
+]
+
+// ─── Persistencia ────────────────────────────────────────────────────────────
+const STORAGE_KEY_PREFIX = 'srm_chat_history'
+const LEGACY_STORAGE_KEY = 'srm_chat_history'
+
+function storageKey(userId) {
+  return userId ? `${STORAGE_KEY_PREFIX}_${userId}` : LEGACY_STORAGE_KEY
+}
+
+function buildWelcomeMessage() {
+  return {
+    role: 'assistant',
+    content:
+      '¡Hola! Soy **SRM**, tu asistente principal de SRM Compras. Analizo tu consulta y te conecto con el especialista adecuado.\n\nElige un agente secundario para ver qué puede hacer, o escríbeme directamente tu pregunta.',
+    agent: { name: PRIMARY_AGENT.name, id: PRIMARY_AGENT.id },
+    showAgentPicker: true,
+  }
+}
+
+function loadMessages(userId) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(storageKey(userId))
     if (raw) {
       const parsed = JSON.parse(raw)
       if (Array.isArray(parsed) && parsed.length > 0) return parsed
     }
+    // Migrar clave antigua si el usuario acaba de iniciar sesión
+    if (userId) {
+      const legacy = localStorage.getItem(LEGACY_STORAGE_KEY)
+      if (legacy) {
+        const parsed = JSON.parse(legacy)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          localStorage.removeItem(LEGACY_STORAGE_KEY)
+          return parsed
+        }
+      }
+    }
   } catch { /* ignorar */ }
-  return [INITIAL_MESSAGE]
+  return [buildWelcomeMessage()]
 }
 
-function saveMessages(msgs) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(msgs)) } catch { /* ignorar */ }
+function saveMessages(msgs, userId) {
+  try {
+    localStorage.setItem(storageKey(userId), JSON.stringify(msgs))
+  } catch { /* ignorar */ }
+}
+
+function clearChatStorage(userId) {
+  try {
+    if (userId) localStorage.removeItem(storageKey(userId))
+    localStorage.removeItem(LEGACY_STORAGE_KEY)
+  } catch { /* ignorar */ }
 }
 
 // ─── Paleta de colores por agente ────────────────────────────────────────────
@@ -39,14 +122,86 @@ const AGENT_COLORS = [
   { bg: '#1a237e', text: '#ffffff' },
 ]
 
+const AGENT_COLOR_MAP = {
+  default: { bg: PRIMARY_AGENT.color, text: '#ffffff' },
+  carmen: { bg: '#276c00', text: '#ffffff' },
+  rafa: { bg: '#655880', text: '#ffffff' },
+  noa: { bg: '#006874', text: '#ffffff' },
+  iris: { bg: '#656100', text: '#ffffff' },
+  alex: { bg: '#8b4513', text: '#ffffff' },
+}
+
 const agentColorCache = {}
 
 function getAgentColor(agentId) {
+  if (AGENT_COLOR_MAP[agentId]) return AGENT_COLOR_MAP[agentId]
   if (!agentColorCache[agentId]) {
     const idx = Object.keys(agentColorCache).length % AGENT_COLORS.length
     agentColorCache[agentId] = AGENT_COLORS[idx]
   }
   return agentColorCache[agentId]
+}
+
+function AgentPicker({ specialists, onSelect, disabled }) {
+  return (
+    <div className="flex flex-col gap-2 mt-1 w-full max-w-[92%]">
+      {/* Agente principal */}
+      <div
+        className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs border-2"
+        style={{
+          borderColor: PRIMARY_AGENT.color,
+          background: `${PRIMARY_AGENT.color}14`,
+          color: 'var(--color-on-surface)',
+        }}
+      >
+        <div
+          className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+          style={{ background: PRIMARY_AGENT.color, color: '#fff' }}
+        >
+          S
+        </div>
+        <div className="min-w-0">
+          <p className="font-semibold text-sm leading-tight">{PRIMARY_AGENT.name}</p>
+          <p className="opacity-75 leading-snug">{PRIMARY_AGENT.tagline}</p>
+        </div>
+        <span
+          className="ml-auto text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded"
+          style={{ background: PRIMARY_AGENT.color, color: '#fff' }}
+        >
+          Principal
+        </span>
+      </div>
+
+      {/* Agentes secundarios */}
+      <p className="text-xs px-1 opacity-70">Especialistas — pulsa para ver qué hace cada uno:</p>
+      <div className="flex flex-wrap gap-1.5">
+        {specialists.map((agent) => (
+          <button
+            key={agent.id}
+            type="button"
+            disabled={disabled}
+            onClick={() => onSelect(agent)}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all hover:opacity-90 active:scale-95 disabled:opacity-40"
+            style={{
+              background: `${agent.color}22`,
+              color: agent.color,
+              border: `1px solid ${agent.color}55`,
+            }}
+            title={`Ver qué hace ${agent.name}`}
+          >
+            <span
+              className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold"
+              style={{ background: agent.color, color: '#fff' }}
+            >
+              {agent.name.charAt(0)}
+            </span>
+            {agent.name}
+            <span className="opacity-70 font-normal">· {agent.shortLabel}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 function AgentAvatar({ agent }) {
@@ -134,21 +289,45 @@ function MdBubble({ content }) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function ChatBubble() {
-  const { token, user } = useAuth()
+  const { token, user, isSuperAdmin } = useAuth()
   const location = useLocation()
 
   const [open, setOpen] = useState(false)
-  // Cargar historial desde localStorage al montar
-  const [messages, setMessages] = useState(loadMessages)
+  const [messages, setMessages] = useState(() => [buildWelcomeMessage()])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
+  const lastUserIdRef = useRef(null)
+
+  const isAdmin = user?.tipo === 'admin' || user?.tipo === 'superadmin' || isSuperAdmin
+  const visibleSpecialists = SPECIALIST_AGENTS.filter(
+    (a) => !a.adminOnly || isAdmin,
+  )
+
+  // Cargar historial al identificar al usuario
+  useEffect(() => {
+    if (!user?.id) return
+    lastUserIdRef.current = user.id
+    setMessages(loadMessages(user.id))
+  }, [user?.id])
+
+  // Reiniciar chat al cerrar sesión
+  useEffect(() => {
+    if (token) return
+    const uid = lastUserIdRef.current
+    if (uid) clearChatStorage(uid)
+    lastUserIdRef.current = null
+    setMessages([buildWelcomeMessage()])
+    setOpen(false)
+    setInput('')
+    setLoading(false)
+  }, [token])
 
   // Persistir mensajes en localStorage cada vez que cambien
   useEffect(() => {
-    saveMessages(messages)
-  }, [messages])
+    if (user?.id) saveMessages(messages, user.id)
+  }, [messages, user?.id])
 
   // Cerrar el panel al cerrar/recargar la pestaña (pero conservar el historial)
   useEffect(() => {
@@ -190,12 +369,32 @@ export default function ChatBubble() {
       }
       const { reply, agent } = await sendMessage(text, nextHistory, token, context)
       setMessages((prev) => [...prev, { role: 'assistant', content: reply, agent }])
-    } catch {
+    } catch (err) {
+      let content =
+        '⚠️ No se pudo conectar con el agente. Comprueba que el backend esté en marcha (`http://localhost:8000`) e inténtalo de nuevo.'
+
+      if (err?.code === 'network') {
+        content =
+          '⚠️ No hay conexión con el servidor. ¿Está arrancado el backend en el puerto 8000?'
+      } else if (err?.code === 'unauthorized' || err?.status === 401) {
+        content =
+          '⚠️ Tu sesión ha caducado o no estás autenticado. Cierra sesión, vuelve a iniciar sesión y prueba otra vez.'
+      } else if (!token) {
+        content = '⚠️ Debes iniciar sesión para usar el asistente.'
+      } else if (err?.code === 'server' || err?.status >= 500) {
+        const detail = typeof err?.message === 'string' ? err.message : ''
+        const openAi =
+          /openai|401.*completions|OPENAI_API_KEY/i.test(detail)
+        content = openAi
+          ? '⚠️ El asistente no está configurado: falta una **API key de OpenAI** válida en el backend (`OPENAI_API_KEY` en `.env`). Contacta con quien administre el servidor.'
+          : '⚠️ El servidor del asistente devolvió un error. Revisa los logs del backend o inténtalo más tarde.'
+      }
+
       setMessages((prev) => [
         ...prev,
         {
           role: 'assistant',
-          content: '⚠️ No se pudo conectar con el agente. Intenta más tarde.',
+          content,
           agent: { name: 'SRM', id: 'default' },
         },
       ])
