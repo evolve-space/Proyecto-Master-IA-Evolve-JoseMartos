@@ -21,7 +21,10 @@ export default function LoginPage() {
       const res = await fetch(`${BASE_URL}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({
+          username: username.trim(),
+          password,
+        }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
@@ -134,7 +137,7 @@ export default function LoginPage() {
 
           {/* Hint */}
           <p className="text-xs text-slate-400 text-center mt-6">
-            Credenciales de prueba: <span className="font-mono">usuario / usuario</span>
+            Credenciales de prueba: <span className="font-mono">admin@srm.local / admin123</span>
           </p>
         </div>
       </div>

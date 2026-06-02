@@ -8,6 +8,7 @@ import ContratosPage     from '../features/contratos/pages/ContratosPage'
 import MuestrasPage      from '../features/muestras/pages/MuestrasPage'
 import ImportacionesPage from '../features/importaciones/pages/ImportacionesPage'
 import ProvidersPage     from '../features/proveedores/pages/ProvidersPage'
+import EmailsPage        from '../features/emails/pages/EmailsPage'
 import UsersPage         from '../features/usuarios/pages/UsersPage'
 
 function ProtectedRoute({ children }) {
@@ -68,6 +69,10 @@ const router = createBrowserRouter([
   {
     path: '/proveedores',
     element: <ProtectedRoute><MainLayout headerTitle="Proveedores"><ProvidersPage /></MainLayout></ProtectedRoute>,
+  },
+  {
+    path: '/correos',
+    element: <ProtectedRoute><MainLayout headerTitle="Correos"><EmailsPage /></MainLayout></ProtectedRoute>,
   },
   {
     path: '/usuarios',

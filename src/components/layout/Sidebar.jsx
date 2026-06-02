@@ -8,6 +8,7 @@ const navItems = [
   { icon: 'science',        label: 'Muestras',        to: '/muestras' },
   { icon: 'local_shipping', label: 'Importaciones',   to: '/importaciones' },
   { icon: 'factory',        label: 'Proveedores',     to: '/proveedores' },
+  { icon: 'mail',           label: 'Correos',         to: '/correos' },
   { icon: 'group',          label: 'Usuarios',        to: '/usuarios', superAdminOnly: true },
 ]
 

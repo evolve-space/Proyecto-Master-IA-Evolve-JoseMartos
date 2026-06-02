@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect } from 'react'
 import { proveedoresService } from '../services/proveedoresService'
+import { sendProveedorEmail } from '../services/proveedoresOutlookService'
 import Modal from '../../../components/ui/Modal'
 
 const tipoStyle = {
@@ -25,6 +26,29 @@ const EMPTY = {
   incoterm: 'CIF', documentacion: false, observaciones: '',
 }
 
+const EMPTY_MAIL = {
+  to: '',
+  cc: '',
+  subject: '',
+  body: '',
+}
+
+function buildMailTemplate(p) {
+  const contact = p.contactoPrincipal || 'equipo comercial'
+  const company = p.nombre || 'su empresa'
+  return {
+    to: p.email ?? '',
+    cc: '',
+    subject: `Colaboracion con ${company}`,
+    body: `Hola ${contact},
+
+Somos el equipo de compras y nos gustaria revisar condiciones con ${company}.
+
+Gracias y quedamos atentos.
+`,
+  }
+}
+
 export default function ProvidersPage() {
   const [proveedores, setProveedores] = useState([])
   const [loading, setLoading]         = useState(true)
@@ -35,6 +59,9 @@ export default function ProvidersPage() {
   const [saving, setSaving]           = useState(false)
   const [menuOpen, setMenuOpen]       = useState(null)
   const [search, setSearch]           = useState('')
+  const [mailForm, setMailForm]       = useState(EMPTY_MAIL)
+  const [mailSending, setMailSending] = useState(false)
+  const [mailStatus, setMailStatus]   = useState(null)
 
   useEffect(() => {
     proveedoresService.getAll()
@@ -54,8 +81,15 @@ export default function ProvidersPage() {
   const openEdit   = p   => { setForm({ ...EMPTY, ...p }); setSelected(p); setModal('edit') }
   const openDetail = p   => { setSelected(p); setModal('detail') }
   const openDelete = p   => { setSelected(p); setModal('delete') }
+  const openSendMail = p => {
+    setSelected(p)
+    setMailForm(buildMailTemplate(p))
+    setMailStatus(null)
+    setModal('sendMail')
+  }
   const close      = ()  => { setModal(null); setSelected(null) }
   const set        = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  const setMail    = (k, v) => setMailForm(f => ({ ...f, [k]: v }))
 
   const handleSubmit = async e => {
     e.preventDefault()
@@ -81,6 +115,44 @@ export default function ProvidersPage() {
       close()
     } catch (e) { alert(e.message) }
     finally { setSaving(false) }
+  }
+
+  const handleSendMail = async e => {
+    e.preventDefault()
+    if (!selected) return
+
+    setMailSending(true)
+    setMailStatus(null)
+    try {
+      await sendProveedorEmail({
+        proveedor: {
+          id: selected.id,
+          nombre: selected.nombre,
+          email: selected.email ?? null,
+          contactoPrincipal: selected.contactoPrincipal ?? null,
+          tipo: selected.tipo ?? null,
+          actividad: selected.actividad ?? null,
+          certificaciones: selected.certificaciones ?? null,
+          formaPago: selected.formaPago ?? null,
+          incoterm: selected.incoterm ?? null,
+        },
+        email: {
+          to: mailForm.to,
+          cc: mailForm.cc,
+          subject: mailForm.subject,
+          body: mailForm.body,
+        },
+      })
+      const company = selected?.nombre || 'el proveedor'
+      setMailStatus({ ok: true, message: `Correo enviado a ${company} correctamente.` })
+    } catch (e2) {
+      setMailStatus({
+        ok: false,
+        message: e2?.message || 'No se pudo enviar el correo.',
+      })
+    } finally {
+      setMailSending(false)
+    }
   }
 
   if (loading) return <p className="p-lg text-slate-500">Cargando proveedores…</p>
@@ -182,6 +254,9 @@ export default function ProvidersPage() {
                         <button onClick={() => { openDelete(p); setMenuOpen(null) }} className="flex items-center gap-2 w-full px-4 py-2 text-sm hover:bg-red-50 text-red-600">
                           <span className="material-symbols-outlined text-base">delete</span> Eliminar
                         </button>
+                        <button onClick={() => { openSendMail(p); setMenuOpen(null) }} className="flex items-center gap-2 w-full px-4 py-2 text-sm hover:bg-sky-50 text-sky-700">
+                          <span className="material-symbols-outlined text-base">mail</span> Enviar mail
+                        </button>
                       </div>
                     )}
                   </td>
@@ -277,6 +352,69 @@ export default function ProvidersPage() {
               {saving ? 'Eliminando…' : 'Eliminar'}
             </button>
           </div>
+        </Modal>
+      )}
+
+      {/* Enviar email por Outlook/n8n */}
+      {modal === 'sendMail' && selected && (
+        <Modal title={`Enviar mail a ${selected.nombre}`} onClose={close} size="lg">
+          <form onSubmit={handleSendMail} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <F label="Para *">
+                <input
+                  required
+                  type="email"
+                  value={mailForm.to}
+                  onChange={e => setMail('to', e.target.value)}
+                  className={inp}
+                  placeholder="proveedor@empresa.com"
+                />
+              </F>
+              <F label="CC">
+                <input
+                  value={mailForm.cc}
+                  onChange={e => setMail('cc', e.target.value)}
+                  className={inp}
+                  placeholder="compras@srm.com, admin@srm.com"
+                />
+              </F>
+            </div>
+
+            <F label="Asunto *" full>
+              <input
+                required
+                value={mailForm.subject}
+                onChange={e => setMail('subject', e.target.value)}
+                className={inp}
+              />
+            </F>
+
+            <F label="Mensaje *" full>
+              <textarea
+                required
+                rows={12}
+                value={mailForm.body}
+                onChange={e => setMail('body', e.target.value)}
+                className={inp + ' resize-y'}
+                placeholder="Escribe aqui el cuerpo del email..."
+              />
+            </F>
+
+            {mailStatus && (
+              <div className={`rounded-lg px-3 py-2 text-sm ${mailStatus.ok ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
+                {mailStatus.message}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+              <button type="button" onClick={close} className="px-4 py-2 rounded-lg border border-[#E2E4D9] text-sm text-slate-600 hover:bg-slate-50">
+                Cerrar
+              </button>
+              <button type="submit" disabled={mailSending} className="px-4 py-2 rounded-lg bg-primary text-white text-sm hover:bg-primary/90 disabled:opacity-50">
+                {mailSending ? 'Enviando…' : 'Enviar'}
+              </button>
+            </div>
+          </form>
         </Modal>
       )}
     </div>
