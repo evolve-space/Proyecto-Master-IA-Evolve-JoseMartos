@@ -16,7 +16,12 @@ class ProveedorRepository extends ServiceEntityRepository
         parent::__construct($registry, Proveedor::class);
     }
 
-//    /**
+    public function findOneByEmail(string $email): ?Proveedor
+    {
+        return $this->findOneBy(['email' => $email]);
+    }
+
+    //    /**
 //     * @return Proveedor[] Returns an array of Proveedor objects
 //     */
 //    public function findByExampleField($value): array
@@ -31,7 +36,7 @@ class ProveedorRepository extends ServiceEntityRepository
 //        ;
 //    }
 
-//    public function findOneBySomeField($value): ?Proveedor
+    //    public function findOneBySomeField($value): ?Proveedor
 //    {
 //        return $this->createQueryBuilder('p')
 //            ->andWhere('p.exampleField = :val')

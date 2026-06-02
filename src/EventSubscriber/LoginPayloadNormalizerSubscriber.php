@@ -7,7 +7,7 @@ use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
- * Acepta login con campo "email" o "username" en el JSON (compatibilidad frontend/README).
+ * Acepta login con campo "username" o "email" en el JSON.
  */
 final class LoginPayloadNormalizerSubscriber implements EventSubscriberInterface
 {
@@ -35,11 +35,11 @@ final class LoginPayloadNormalizerSubscriber implements EventSubscriberInterface
         $email = trim((string) ($data['email'] ?? ''));
         $username = trim((string) ($data['username'] ?? ''));
 
-        if ($email !== '' || $username === '') {
+        if ($username !== '' || $email === '') {
             return;
         }
 
-        $data['email'] = $username;
+        $data['username'] = $email;
 
         $request->initialize(
             $request->query->all(),

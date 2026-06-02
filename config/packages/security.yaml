@@ -18,7 +18,7 @@ security:
             provider: app_user_provider
             json_login:
                 check_path: /api/login
-                username_path: email
+                username_path: username
                 password_path: password
                 success_handler: lexik_jwt_authentication.handler.authentication_success
                 failure_handler: lexik_jwt_authentication.handler.authentication_failure
@@ -31,6 +31,8 @@ security:
 
     access_control:
         - { path: ^/api/login, roles: PUBLIC_ACCESS }
+        - { path: ^/api/emails/incoming, roles: PUBLIC_ACCESS }
+        - { path: ^/api/outlook/oauth/callback, roles: PUBLIC_ACCESS }
         - { path: ^/api/usuarios, roles: ROLE_SUPER_ADMIN }
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
 

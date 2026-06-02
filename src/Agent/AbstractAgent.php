@@ -95,51 +95,55 @@ abstract class AbstractAgent implements AgentInterface
         $messages[] = ['role' => 'user', 'content' => $message];
         $tools      = $this->getTools();
 
-        for ($i = 0; $i < self::MAX_ITERATIONS; $i++) {
-            $response = $this->httpClient->request('POST', 'https://api.openai.com/v1/chat/completions', [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . trim($this->openAiApiKey),
-                    'Content-Type'  => 'application/json',
-                ],
-                'json' => [
-                    'model'       => $this->openAiModel,
-                    'messages'    => $messages,
-                    'tools'       => $tools,
-                    'tool_choice' => 'auto',
-                    'temperature' => 0.3,
-                    'max_tokens'  => 2000,
-                ],
-                'timeout' => 45,
-            ]);
+        try {
+            for ($i = 0; $i < self::MAX_ITERATIONS; $i++) {
+                $response = $this->httpClient->request('POST', 'https://api.openai.com/v1/chat/completions', [
+                    'headers' => [
+                        'Authorization' => 'Bearer ' . trim($this->openAiApiKey),
+                        'Content-Type'  => 'application/json',
+                    ],
+                    'json' => [
+                        'model'       => $this->openAiModel,
+                        'messages'    => $messages,
+                        'tools'       => $tools,
+                        'tool_choice' => 'auto',
+                        'temperature' => 0.3,
+                        'max_tokens'  => 2000,
+                    ],
+                    'timeout' => 45,
+                ]);
 
-            $data         = $response->toArray();
-            $choice       = $data['choices'][0] ?? [];
-            $assistantMsg = $choice['message'] ?? [];
-            $finishReason = $choice['finish_reason'] ?? 'stop';
-            $toolCalls    = $assistantMsg['tool_calls'] ?? [];
+                $data         = $response->toArray();
+                $choice       = $data['choices'][0] ?? [];
+                $assistantMsg = $choice['message'] ?? [];
+                $finishReason = $choice['finish_reason'] ?? 'stop';
+                $toolCalls    = $assistantMsg['tool_calls'] ?? [];
 
-            // Añadir mensaje del asistente al historial de la conversación
-            $messages[] = $assistantMsg;
+                // Añadir mensaje del asistente al historial de la conversación
+                $messages[] = $assistantMsg;
 
-            // Si no hay llamadas a herramientas → respuesta final en lenguaje natural
-            if ($finishReason === 'stop' || empty($toolCalls)) {
-                return $assistantMsg['content']
-                    ?? 'Lo siento, no pude generar una respuesta en este momento.';
+                // Si no hay llamadas a herramientas → respuesta final en lenguaje natural
+                if ($finishReason === 'stop' || empty($toolCalls)) {
+                    return $assistantMsg['content']
+                        ?? 'Lo siento, no pude generar una respuesta en este momento.';
+                }
+
+                // Ejecutar cada tool_call y añadir el resultado al historial
+                foreach ($toolCalls as $toolCall) {
+                    $toolName   = $toolCall['function']['name'] ?? '';
+                    $args       = json_decode($toolCall['function']['arguments'] ?? '{}', true) ?? [];
+                    $toolResult = $this->executeTool($toolName, $args, $jwt);
+
+                    $messages[] = [
+                        'role'         => 'tool',
+                        'tool_call_id' => $toolCall['id'],
+                        'name'         => $toolName,
+                        'content'      => $toolResult,
+                    ];
+                }
             }
-
-            // Ejecutar cada tool_call y añadir el resultado al historial
-            foreach ($toolCalls as $toolCall) {
-                $toolName   = $toolCall['function']['name'] ?? '';
-                $args       = json_decode($toolCall['function']['arguments'] ?? '{}', true) ?? [];
-                $toolResult = $this->executeTool($toolName, $args, $jwt);
-
-                $messages[] = [
-                    'role'         => 'tool',
-                    'tool_call_id' => $toolCall['id'],
-                    'name'         => $toolName,
-                    'content'      => $toolResult,
-                ];
-            }
+        } catch (\Throwable) {
+            return 'El asistente IA no está configurado en el backend. Revisa OPENAI_API_KEY y OPENAI_MODEL en .env.';
         }
 
         return 'No pude completar la operación. Por favor, inténtalo de nuevo.';
