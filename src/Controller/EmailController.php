@@ -3,8 +3,10 @@
 namespace App\Controller;
 
 use App\Entity\Email;
+use App\Entity\EmailExclusion;
 use App\Entity\Proveedor;
 use App\Repository\EmailCategoriaRepository;
+use App\Repository\EmailExclusionRepository;
 use App\Repository\EmailRepository;
 use App\Service\EmailGraphSyncService;
 use App\Service\EmailImportService;
@@ -260,8 +262,16 @@ class EmailController extends AbstractController
     }
 
     #[Route('/api/emails/{id}', name: 'api_email_delete', methods: ['DELETE'])]
-    public function delete(Email $email, EntityManagerInterface $em): JsonResponse
-    {
+    public function delete(
+        Email $email,
+        EntityManagerInterface $em,
+        EmailExclusionRepository $exclusionRepository,
+    ): JsonResponse {
+        $messageId = trim($email->getMessageId());
+        if ($messageId !== '' && !$exclusionRepository->existsByMessageId($messageId)) {
+            $em->persist(new EmailExclusion($messageId));
+        }
+
         $em->remove($email);
         $em->flush();
 

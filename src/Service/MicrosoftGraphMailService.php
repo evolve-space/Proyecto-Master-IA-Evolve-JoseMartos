@@ -117,10 +117,8 @@ class MicrosoftGraphMailService
      */
     public function listAttachments(string $messageId): array
     {
-        $query = http_build_query([
-            '$select' => 'id,name,contentType,size,@odata.type',
-        ]);
-        $url = $this->mailUrl('/messages/'.rawurlencode($messageId).'/attachments?'.$query);
+        // Sin $select: Graph devuelve metadatos (incl. contentId en fileAttachment) sin contentBytes.
+        $url = $this->mailUrl('/messages/'.rawurlencode($messageId).'/attachments');
 
         $data = $this->requestJson('GET', $url);
         $value = $data['value'] ?? [];
@@ -150,6 +148,7 @@ class MicrosoftGraphMailService
                 'size' => isset($item['size']) ? (int) $item['size'] : null,
                 'downloadable' => $isFile,
                 'isInline' => (bool) ($item['isInline'] ?? false),
+                'contentId' => isset($item['contentId']) ? (string) $item['contentId'] : null,
             ];
         }
 

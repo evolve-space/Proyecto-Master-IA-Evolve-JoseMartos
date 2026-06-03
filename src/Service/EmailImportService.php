@@ -3,6 +3,8 @@
 namespace App\Service;
 
 use App\Entity\Email;
+use App\Entity\EmailExclusion;
+use App\Repository\EmailExclusionRepository;
 use App\Repository\EmailRepository;
 use App\Repository\ProveedorRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -13,6 +15,7 @@ class EmailImportService
         private readonly EntityManagerInterface $em,
         private readonly EmailRepository $emailRepository,
         private readonly ProveedorRepository $proveedorRepository,
+        private readonly EmailExclusionRepository $emailExclusionRepository,
     ) {
     }
 
@@ -24,6 +27,10 @@ class EmailImportService
         $messageId = trim((string) ($data['messageId'] ?? ''));
         if ($messageId === '') {
             throw new \InvalidArgumentException('messageId es obligatorio.');
+        }
+
+        if ($this->emailExclusionRepository->existsByMessageId($messageId)) {
+            throw new \InvalidArgumentException('Este correo fue eliminado en la aplicacion.');
         }
 
         $existing = $this->emailRepository->findOneByMessageId($messageId);
@@ -65,6 +72,10 @@ class EmailImportService
                 $messageId = trim((string) ($data['messageId'] ?? ''));
                 if ($messageId === '') {
                     throw new \InvalidArgumentException('messageId es obligatorio.');
+                }
+
+                if ($this->emailExclusionRepository->existsByMessageId($messageId)) {
+                    continue;
                 }
 
                 $existing = $this->emailRepository->findOneByMessageId($messageId);
@@ -167,7 +178,7 @@ class EmailImportService
                 if ($name === '') {
                     continue;
                 }
-                $list[] = [
+                $entry = [
                     'id' => $item['id'] ?? $item['attachmentId'] ?? null,
                     'name' => $name,
                     'contentType' => $item['contentType'] ?? $item['mimeType'] ?? null,
@@ -175,6 +186,11 @@ class EmailImportService
                     'downloadable' => (bool) ($item['downloadable'] ?? true),
                     'isInline' => (bool) ($item['isInline'] ?? false),
                 ];
+                $contentId = $item['contentId'] ?? $item['content_id'] ?? null;
+                if ($contentId !== null && $contentId !== '') {
+                    $entry['contentId'] = (string) $contentId;
+                }
+                $list[] = $entry;
             }
         }
 
