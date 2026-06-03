@@ -1,15 +1,20 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import Modal from "../../../components/ui/Modal";
+import AttachmentPreviewModal from "../components/AttachmentPreviewModal";
 import CategoriesModal from "../components/CategoriesModal";
 import EmailAttachmentsPanel from "../components/EmailAttachmentsPanel";
 import EmailComposeModal from "../components/EmailComposeModal";
-import { filesToOutgoingAttachments } from "../utils/attachmentUtils";
+import EmailHtmlBody from "../components/EmailHtmlBody";
+import { bodyHasEmbeddedImages, filesToOutgoingAttachments } from "../utils/attachmentUtils";
+import { addExcludedMessageId, filterExcludedEmails } from "../utils/excludedEmailsStorage";
 import { emailCategoriasService } from "../services/emailCategoriasService";
 import { emailsService } from "../services/emailsService";
 import { outlookOAuthService } from "../services/outlookOAuthService";
 
 const EMPTY_COMPOSE = { to: "", cc: "", subject: "", body: "", files: [] };
+const AUTO_SYNC_MS = 60_000;
+const AUTO_SYNC_TOP = 30;
 
 function extractEmailAddress(value) {
   const s = String(value ?? "").trim();
@@ -79,7 +84,7 @@ function senderInitials(sender) {
   return name.slice(0, 2).toUpperCase();
 }
 
-function EmailBody({ email }) {
+function EmailBody({ email, attachments, fetchBlob }) {
   const body = email?.body?.trim();
   if (!body) {
     return (
@@ -89,14 +94,9 @@ function EmailBody({ email }) {
     );
   }
   if (email.bodyIsHtml) {
-    return (
-      <div
-        className="email-html-body prose prose-sm max-w-none prose-slate prose-a:text-primary"
-        dangerouslySetInnerHTML={{ __html: body }}
-      />
-    );
+    return <EmailHtmlBody html={body} attachments={attachments} fetchBlob={fetchBlob} />;
   }
-  return <pre className="whitespace-pre-wrap font-sans text-sm text-slate-700 leading-relaxed">{body}</pre>;
+  return <pre className="whitespace-pre-wrap font-sans text-base text-slate-700 leading-relaxed">{body}</pre>;
 }
 
 export default function EmailsPage() {
@@ -111,6 +111,7 @@ export default function EmailsPage() {
   const [detail, setDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState(null);
+  const [attachmentError, setAttachmentError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [mobileShowDetail, setMobileShowDetail] = useState(false);
@@ -126,6 +127,10 @@ export default function EmailsPage() {
   const [composeStatus, setComposeStatus] = useState(null);
   const [attachmentsLoading, setAttachmentsLoading] = useState(false);
   const [attachmentPreview, setAttachmentPreview] = useState(null);
+  const [autoSyncing, setAutoSyncing] = useState(false);
+  const [newMailBanner, setNewMailBanner] = useState(null);
+  const syncInFlightRef = useRef(false);
+  const outlookConnectedRef = useRef(false);
 
   const loadOutlookStatus = useCallback(async () => {
     try {
@@ -143,8 +148,8 @@ export default function EmailsPage() {
   const loadList = useCallback(async (silent = false) => {
     if (!silent) setListLoading(true);
     try {
-      const list = await emailsService.getAll();
-      setEmails(list ?? []);
+      const list = filterExcludedEmails(await emailsService.getAll());
+      setEmails(list);
       setError(null);
     } catch (e) {
       setError(e.message);
@@ -163,15 +168,20 @@ export default function EmailsPage() {
   }, []);
 
   useEffect(() => {
+    outlookConnectedRef.current = outlook.connected;
+  }, [outlook.connected]);
+
+  useEffect(() => {
     loadList();
     loadOutlookStatus();
     loadCategorias();
   }, [loadList, loadOutlookStatus, loadCategorias]);
 
   useEffect(() => {
-    const interval = setInterval(() => loadList(true), 30000);
-    return () => clearInterval(interval);
-  }, [loadList]);
+    if (!newMailBanner) return undefined;
+    const t = setTimeout(() => setNewMailBanner(null), 8000);
+    return () => clearTimeout(t);
+  }, [newMailBanner]);
 
   useEffect(() => {
     const result = searchParams.get("outlook");
@@ -249,6 +259,7 @@ export default function EmailsPage() {
   const loadAttachmentsForEmail = useCallback(
     async (emailId) => {
       setAttachmentsLoading(true);
+      setAttachmentError(null);
       try {
         const result = await emailsService.syncAttachments(emailId);
         if (result?.email) {
@@ -261,7 +272,7 @@ export default function EmailsPage() {
           });
         }
       } catch (e) {
-        setDetailError(e.message);
+        setAttachmentError(e.message);
       } finally {
         setAttachmentsLoading(false);
       }
@@ -269,12 +280,73 @@ export default function EmailsPage() {
     [applyEmailUpdate],
   );
 
+  const syncInboxFromOutlook = useCallback(
+    async ({ silent = true, full = false } = {}) => {
+      if (!outlookConnectedRef.current || syncInFlightRef.current) return null;
+
+      syncInFlightRef.current = true;
+      if (silent) setAutoSyncing(true);
+      else setSyncing(true);
+
+      try {
+        const result = await emailsService.syncFromGraph({
+          all: false,
+          top: full ? 100 : AUTO_SYNC_TOP,
+          includeAttachments: full,
+        });
+        if (!silent) setSyncStats(result ?? null);
+
+        const imported = result?.imported ?? 0;
+        if (imported > 0) {
+          setNewMailBanner(
+            imported === 1 ? "1 correo nuevo recibido" : `${imported} correos nuevos recibidos`,
+          );
+        }
+
+        await loadList(true);
+        setError(null);
+        return result;
+      } catch (e) {
+        if (!silent) setError(e.message);
+        return null;
+      } finally {
+        syncInFlightRef.current = false;
+        if (silent) setAutoSyncing(false);
+        else setSyncing(false);
+      }
+    },
+    [loadList],
+  );
+
+  useEffect(() => {
+    if (outlook.loading || !outlook.connected) return undefined;
+
+    syncInboxFromOutlook({ silent: true });
+
+    const interval = setInterval(() => {
+      syncInboxFromOutlook({ silent: true });
+    }, AUTO_SYNC_MS);
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        syncInboxFromOutlook({ silent: true });
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [outlook.connected, outlook.loading, syncInboxFromOutlook]);
+
   const openEmail = useCallback(
     async (email) => {
       setSelectedId(email.id);
       setMobileShowDetail(true);
       setDetail(null);
       setDetailError(null);
+      setAttachmentError(null);
       setDetailLoading(true);
 
       try {
@@ -288,7 +360,11 @@ export default function EmailsPage() {
           applyEmailUpdate(merged);
         }
 
-        if (full.hasAttachments && !(full.attachments?.length > 0)) {
+        const needsAttachments =
+          full.hasAttachments ||
+          bodyHasEmbeddedImages(full.body) ||
+          (full.attachments?.length ?? 0) > 0;
+        if (needsAttachments) {
           await loadAttachmentsForEmail(full.id);
         }
       } catch (e) {
@@ -317,24 +393,24 @@ export default function EmailsPage() {
   };
 
   const handleSync = async () => {
-    setSyncing(true);
     setError(null);
-    try {
-      const result = await emailsService.syncFromGraph({
-        all: true,
-        top: 50,
-        includeAttachments: true,
-      });
-      setSyncStats(result ?? null);
-      await loadList(true);
-      if (selectedId) {
-        const still = (await emailsService.getAll()).find((e) => e.id === selectedId);
-        if (still) await openEmail(still);
+    await syncInboxFromOutlook({ silent: false, full: true });
+    if (selectedId && detail) {
+      try {
+        const full = await emailsService.getOne(selectedId, { refresh: true });
+        setDetail(full);
+        applyEmailUpdate(full);
+        if (
+          full.hasAttachments ||
+          bodyHasEmbeddedImages(full.body) ||
+          (full.attachments?.length ?? 0) > 0
+        ) {
+          setAttachmentError(null);
+          await loadAttachmentsForEmail(full.id);
+        }
+      } catch (e) {
+        setDetailError(e.message);
       }
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setSyncing(false);
     }
   };
 
@@ -357,6 +433,9 @@ export default function EmailsPage() {
     setSaving(true);
     try {
       await emailsService.remove(deleteTarget.id);
+      if (deleteTarget.messageId) {
+        addExcludedMessageId(deleteTarget.messageId);
+      }
       setEmails((prev) => prev.filter((item) => item.id !== deleteTarget.id));
       if (selectedId === deleteTarget.id) {
         setSelectedId(null);
@@ -372,21 +451,31 @@ export default function EmailsPage() {
   };
 
   const handleDownloadAttachment = async (att) => {
-    if (!detail?.id || !att?.id) return;
+    if (!detail?.id || !(att?.id ?? att?.attachmentId)) return;
     try {
-      await emailsService.downloadAttachment(detail.id, att.id, att.name ?? "adjunto");
+      await emailsService.downloadAttachment(detail.id, att, att.name ?? "adjunto");
     } catch (e) {
       alert(`No se pudo descargar el adjunto.\n\n${e.message}`);
       throw e;
     }
   };
 
+  const fetchAttachmentBlob = useCallback(
+    (att) => {
+      if (!detail?.id || !(att?.id ?? att?.attachmentId)) {
+        return Promise.reject(new Error("Selecciona un correo con adjuntos."));
+      }
+      return emailsService.fetchAttachmentBlob(detail.id, att);
+    },
+    [detail?.id],
+  );
+
   const handlePreviewAttachment = async (att) => {
-    if (!detail?.id || !att?.id) return;
+    if (!detail?.id || !(att?.id ?? att?.attachmentId)) return;
     try {
-      const blob = await emailsService.fetchAttachmentBlob(detail.id, att.id);
+      const blob = await fetchAttachmentBlob(att);
       const url = window.URL.createObjectURL(blob);
-      setAttachmentPreview({ url, name: att.name ?? "Vista previa" });
+      setAttachmentPreview({ url, blob, att, name: att.name ?? "Vista previa" });
     } catch (e) {
       alert(`No se pudo abrir la vista previa.\n\n${e.message}`);
     }
@@ -479,24 +568,28 @@ export default function EmailsPage() {
     );
   }
 
+  const statusChips = [
+    { key: "pending", label: "Pend.", icon: "mark_email_unread", color: "text-amber-700 bg-amber-50 border-amber-200" },
+    { key: "read", label: "Leídos", icon: "drafts", color: "text-sky-700 bg-sky-50 border-sky-200" },
+    { key: "replied", label: "Resp.", icon: "reply", color: "text-emerald-700 bg-emerald-50 border-emerald-200" },
+    { key: "closed", label: "Cerr.", icon: "inventory_2", color: "text-slate-600 bg-slate-50 border-slate-200" },
+  ];
+
   return (
-    <div className="flex flex-col flex-1 min-h-0 h-[calc(100vh-4.5rem)] min-h-[640px]">
+    <div className="-m-4 sm:-m-6 lg:-m-8 flex flex-col flex-1 min-h-0 h-[calc(100dvh-4rem)] max-h-[calc(100dvh-4rem)]">
       {!outlook.loading && !outlook.connected && (
-        <div className="mb-3 shrink-0 rounded-xl border border-sky-200 bg-gradient-to-r from-sky-50 to-white px-4 py-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="mx-3 mt-2 shrink-0 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-start gap-3 min-w-0">
             <span className="material-symbols-outlined text-sky-600 text-2xl shrink-0">link</span>
-            <div>
-              <p className="text-sm font-semibold text-sky-900">Conecta tu Outlook</p>
-              <p className="text-xs text-sky-700/90 mt-0.5 max-w-xl">
-                Funciona con Hotmail, Outlook.com y Microsoft 365. Inicias sesión una vez — no hace falta inventar una organización.
-              </p>
-            </div>
+            <p className="text-xs text-sky-900">
+              <span className="font-semibold">Conecta Outlook</span> para sincronizar la bandeja.
+            </p>
           </div>
           <button
             type="button"
             onClick={handleConnectOutlook}
             disabled={connectingOutlook}
-            className="shrink-0 flex items-center gap-2 bg-sky-600 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-sky-700 disabled:opacity-50"
+            className="shrink-0 flex items-center gap-1.5 bg-sky-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-sky-700 disabled:opacity-50"
           >
             <span className="material-symbols-outlined text-[18px]">login</span>
             {connectingOutlook ? "Redirigiendo…" : "Conectar Outlook"}
@@ -504,139 +597,123 @@ export default function EmailsPage() {
         </div>
       )}
 
+      {newMailBanner && (
+        <div className="mx-3 mt-2 shrink-0 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs text-emerald-800 flex items-center gap-2">
+          <span className="material-symbols-outlined text-lg shrink-0">mark_email_unread</span>
+          <span>{newMailBanner}</span>
+        </div>
+      )}
+
       {error && (
-        <div className="mb-3 shrink-0 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-start gap-2">
+        <div className="mx-3 mt-2 shrink-0 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-700 flex items-start gap-2">
           <span className="material-symbols-outlined text-lg shrink-0">error</span>
           <span>{error}</span>
         </div>
       )}
 
-      {/* Cabecera */}
-      <div className="shrink-0 mb-4">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h2 className="font-h2 text-h2 text-on-surface flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-[28px]">mail</span>
-              Correos
-            </h2>
-            <p className="text-body-sm text-slate-500 mt-0.5">
-              {outlook.connected ? (
-                <>
-                  {stats.total} correos en base de datos
-                  <span className="text-slate-300 mx-1">·</span>
-                  <button
-                    type="button"
-                    onClick={handleDisconnectOutlook}
-                    className="text-slate-400 hover:text-red-600 underline"
-                  >
-                    Cambiar cuenta Outlook
-                  </button>
-                </>
-              ) : (
-                `${stats.total} en base de datos · conecta Outlook para sincronizar`
-              )}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={() => setShowCategoriesModal(true)}
-              className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-[#E2E4D9] bg-white text-sm text-slate-700 hover:border-primary/40"
-            >
-              <span className="material-symbols-outlined text-[18px]">label</span>
-              Categorías
-            </button>
-            <button
-              type="button"
-              onClick={openCompose}
-              disabled={!outlook.connected}
-              title={!outlook.connected ? "Conecta Outlook primero" : undefined}
-              className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-[#E2E4D9] bg-white text-sm text-slate-700 hover:border-primary/40 disabled:opacity-50"
-            >
-              <span className="material-symbols-outlined text-[18px]">edit</span>
-              Nuevo correo
-            </button>
-            <button
-              type="button"
-              onClick={handleSync}
-              disabled={syncing || !outlook.connected}
-              title={!outlook.connected ? "Conecta Outlook primero" : undefined}
-              className="flex items-center gap-2 bg-primary text-white font-label-md px-4 py-2.5 rounded-xl shadow-sm shadow-primary/20 hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-50"
-            >
-              <span className={`material-symbols-outlined text-[20px] ${syncing ? "animate-spin" : ""}`}>
-                sync
-              </span>
-              {syncing ? "Sincronizando…" : "Sincronizar"}
-            </button>
-          </div>
-        </div>
-
-        {syncStats && (
-          <div className="mt-3 flex flex-wrap gap-2 text-xs">
-            <span className="rounded-full bg-slate-100 text-slate-600 px-3 py-1">
-              {syncStats.fetched ?? 0} leídos en Graph
-            </span>
-            <span className="rounded-full bg-emerald-50 text-emerald-700 px-3 py-1">
-              +{syncStats.imported ?? 0} nuevos
-            </span>
-            <span className="rounded-full bg-slate-100 text-slate-500 px-3 py-1">
-              {syncStats.duplicated ?? 0} ya existían
-            </span>
-            {(syncStats.failed ?? 0) > 0 && (
-              <span className="rounded-full bg-red-50 text-red-600 px-3 py-1">
-                {syncStats.failed} fallidos
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
-          {[
-            { key: "pending", label: "Pendientes", icon: "mark_email_unread", color: "text-amber-600" },
-            { key: "read", label: "Leídos", icon: "drafts", color: "text-sky-600" },
-            { key: "replied", label: "Respondidos", icon: "reply", color: "text-emerald-600" },
-            { key: "closed", label: "Cerrados", icon: "inventory_2", color: "text-slate-500" },
-          ].map(({ key, label, icon, color }) => (
+      {/* Barra compacta */}
+      <div className="shrink-0 px-3 pt-2 pb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-[#E2E4D9]/80 bg-[#FCFDF7]">
+        <span className="text-sm text-slate-500">
+          Total: <span className="font-semibold text-slate-700 tabular-nums">{stats.total}</span>
+        </span>
+        <div className="flex flex-wrap items-center gap-1">
+          {statusChips.map(({ key, label, icon, color }) => (
             <button
               key={key}
               type="button"
               onClick={() => setStatusFilter(statusFilter === key ? "all" : key)}
-              className={`rounded-xl border px-3 py-2.5 text-left transition-all ${
-                statusFilter === key
-                  ? "border-primary bg-primary/5 ring-2 ring-primary/20"
-                  : "border-[#E2E4D9] bg-white hover:border-primary/30"
+              title={statusLabel[key]}
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-xs sm:text-sm font-medium transition-all ${
+                statusFilter === key ? "ring-1 ring-primary/40 border-primary/50" : color
               }`}
             >
-              <div className="flex items-center justify-between">
-                <span className={`material-symbols-outlined text-[18px] ${color}`}>{icon}</span>
-                <span className="text-lg font-bold text-on-surface">{stats[key]}</span>
-              </div>
-              <p className="text-[11px] text-slate-500 mt-0.5 uppercase tracking-wide">{label}</p>
+              <span className="material-symbols-outlined text-[14px]">{icon}</span>
+              <span className="tabular-nums">{stats[key]}</span>
+              <span className="hidden sm:inline opacity-80">{label}</span>
             </button>
           ))}
         </div>
+
+        {outlook.connected && (
+          <span className="hidden lg:inline text-[10px] text-slate-400 truncate max-w-[180px]" title={outlook.email}>
+            {outlook.email}
+          </span>
+        )}
+        {autoSyncing && (
+          <span className="inline-flex items-center gap-0.5 text-[10px] text-primary">
+            <span className="material-symbols-outlined text-[12px] animate-spin">sync</span>
+            Sync
+          </span>
+        )}
+
+        <div className="flex-1 min-w-[8px]" />
+
+        {syncStats && (
+          <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
+            +{syncStats.imported ?? 0} nuevos
+          </span>
+        )}
+
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setShowCategoriesModal(true)}
+            title="Categorías"
+            className="p-1.5 rounded-lg border border-[#E2E4D9] bg-white text-slate-600 hover:border-primary/40"
+          >
+            <span className="material-symbols-outlined text-[18px]">label</span>
+          </button>
+          <button
+            type="button"
+            onClick={openCompose}
+            disabled={!outlook.connected}
+            title={!outlook.connected ? "Conecta Outlook primero" : "Nuevo correo"}
+            className="p-1.5 rounded-lg border border-[#E2E4D9] bg-white text-slate-600 hover:border-primary/40 disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined text-[18px]">edit</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleSync}
+            disabled={syncing || !outlook.connected}
+            title={!outlook.connected ? "Conecta Outlook primero" : "Sincronizar"}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-primary text-white text-xs font-medium hover:bg-primary/90 disabled:opacity-50"
+          >
+            <span className={`material-symbols-outlined text-[16px] ${syncing ? "animate-spin" : ""}`}>sync</span>
+            <span className="hidden sm:inline">{syncing ? "…" : "Sync"}</span>
+          </button>
+          {outlook.connected && (
+            <button
+              type="button"
+              onClick={handleDisconnectOutlook}
+              title="Cambiar cuenta Outlook"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50"
+            >
+              <span className="material-symbols-outlined text-[18px]">logout</span>
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Búsqueda */}
-      <div className="shrink-0 flex flex-wrap gap-2 mb-3">
-        <div className="relative flex-1 min-w-[200px]">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
+      {/* Búsqueda + filtros en una línea */}
+      <div className="shrink-0 px-3 py-1.5 flex flex-wrap items-center gap-1.5 border-b border-[#E2E4D9]/60 bg-white">
+        <div className="relative flex-1 min-w-[140px]">
+          <span className="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-[16px]">
             search
           </span>
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar asunto, remitente, proveedor…"
-            className="w-full pl-9 pr-4 py-2 text-sm border border-[#E2E4D9] rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            placeholder="Buscar…"
+            className="w-full pl-7 pr-2 py-2 text-sm border border-[#E2E4D9] rounded-lg bg-slate-50/80 focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary"
           />
         </div>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 text-sm border border-[#E2E4D9] rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+          className="px-2 py-2 text-sm border border-[#E2E4D9] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-primary/30 max-w-[120px]"
         >
-          <option value="all">Todos los estados</option>
+          <option value="all">Estado</option>
           <option value="pending">Pendiente</option>
           <option value="read">Leído</option>
           <option value="replied">Respondido</option>
@@ -645,9 +722,9 @@ export default function EmailsPage() {
         <select
           value={categoriaFilter}
           onChange={(e) => setCategoriaFilter(e.target.value)}
-          className="px-3 py-2 text-sm border border-[#E2E4D9] rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 max-w-[200px]"
+          className="px-2 py-2 text-sm border border-[#E2E4D9] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-primary/30 max-w-[130px]"
         >
-          <option value="all">Todas las categorías</option>
+          <option value="all">Categoría</option>
           <option value="none">Sin categoría</option>
           {categorias.map((cat) => (
             <option key={cat.id} value={String(cat.id)}>
@@ -658,14 +735,14 @@ export default function EmailsPage() {
       </div>
 
       {/* Panel principal */}
-      <div className="flex-1 min-h-0 flex gap-0 rounded-2xl border border-[#E2E4D9] bg-white shadow-sm overflow-hidden">
+      <div className="flex-1 min-h-0 mx-3 mb-3 flex gap-0 rounded-xl border border-[#E2E4D9] bg-white shadow-sm overflow-hidden">
         {/* Lista */}
         <aside
-          className={`w-full md:w-[min(42vw,480px)] lg:w-[min(38vw,520px)] shrink-0 flex flex-col border-r border-[#E2E4D9] bg-slate-50/40 ${
+          className={`w-full md:w-[min(36vw,340px)] lg:w-[320px] xl:w-[360px] shrink-0 flex flex-col border-r border-[#E2E4D9] bg-slate-50/40 ${
             mobileShowDetail ? "hidden md:flex" : "flex"
           }`}
         >
-          <div className="px-4 py-2 border-b border-[#E2E4D9] bg-white/80 text-xs font-medium text-slate-500 uppercase tracking-wider">
+          <div className="px-3 py-1.5 border-b border-[#E2E4D9] bg-white/80 text-xs font-medium text-slate-500">
             {filtered.length} mensajes
           </div>
           <ul className="flex-1 overflow-y-auto divide-y divide-[#E2E4D9]/80">
@@ -689,12 +766,12 @@ export default function EmailsPage() {
                   <button
                     type="button"
                     onClick={() => openEmail(email)}
-                    className={`w-full text-left px-4 py-3 transition-colors flex gap-3 ${
-                      active ? "bg-primary/8 border-l-[3px] border-l-primary" : "hover:bg-white border-l-[3px] border-l-transparent"
+                    className={`w-full text-left px-2.5 py-2 transition-colors flex gap-2 ${
+                      active ? "bg-primary/8 border-l-2 border-l-primary" : "hover:bg-white border-l-2 border-l-transparent"
                     }`}
                   >
                     <div
-                      className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold ${
+                      className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold ${
                         unread ? "bg-primary text-white" : "bg-slate-200 text-slate-600"
                       }`}
                     >
@@ -705,28 +782,25 @@ export default function EmailsPage() {
                         <span className={`text-sm truncate ${unread ? "font-bold text-on-surface" : "font-medium text-slate-700"}`}>
                           {email.sender?.split("<")[0]?.trim() || email.sender || "—"}
                         </span>
-                        <span className="text-[11px] text-slate-400 shrink-0">{formatDate(email.receivedAt, { short: true })}</span>
+                        <span className="text-xs text-slate-400 shrink-0">{formatDate(email.receivedAt, { short: true })}</span>
                       </div>
-                      <p className={`text-sm truncate mt-0.5 ${unread ? "font-semibold text-on-surface" : "text-slate-600"}`}>
+                      <p className={`text-sm truncate ${unread ? "font-semibold text-on-surface" : "text-slate-600"}`}>
                         {email.subject || "(Sin asunto)"}
                       </p>
-                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusStyles[email.status] ?? statusStyles.closed}`}>
+                      <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusStyles[email.status] ?? statusStyles.closed}`}>
                           {statusLabel[email.status] ?? email.status}
                         </span>
-                        {email.hasAttachments && (
-                          <span className="material-symbols-outlined text-slate-400 text-[14px]">attach_file</span>
-                        )}
                         {email.categoriaNombre && (
                           <span
-                            className="text-[10px] font-medium px-2 py-0.5 rounded-full text-white truncate max-w-[100px]"
+                            className="text-xs font-medium px-2 py-0.5 rounded-full text-white truncate max-w-[100px]"
                             style={{ backgroundColor: email.categoriaColor || "#64748b" }}
                           >
                             {email.categoriaNombre}
                           </span>
                         )}
                         {email.proveedorNombre && (
-                          <span className="text-[10px] text-primary truncate max-w-[140px]">{email.proveedorNombre}</span>
+                          <span className="text-xs text-primary truncate max-w-[140px]">{email.proveedorNombre}</span>
                         )}
                       </div>
                     </div>
@@ -744,15 +818,13 @@ export default function EmailsPage() {
           }`}
         >
           {!selectedId ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8">
-              <span className="material-symbols-outlined text-6xl text-slate-200 mb-3">mail</span>
-              <p className="text-sm text-center max-w-xs">
-                Selecciona un correo para ver el contenido completo desde Outlook
-              </p>
+            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-4">
+              <span className="material-symbols-outlined text-4xl text-slate-200 mb-2">mail</span>
+              <p className="text-xs text-center max-w-[200px]">Selecciona un correo</p>
             </div>
           ) : (
             <>
-              <header className="shrink-0 border-b border-[#E2E4D9] px-4 sm:px-6 py-4">
+              <header className="shrink-0 border-b border-[#E2E4D9] px-3 sm:px-4 py-2">
                 <div className="flex items-start gap-2">
                   <button
                     type="button"
@@ -763,51 +835,51 @@ export default function EmailsPage() {
                     <span className="material-symbols-outlined">arrow_back</span>
                   </button>
                   <div className="min-w-0 flex-1">
-                    <h3 className="text-lg font-semibold text-on-surface leading-snug">
+                    <h3 className="text-base font-semibold text-on-surface leading-snug line-clamp-2">
                       {detail?.subject || selectedListItem?.subject || "Cargando…"}
                     </h3>
-                    <p className="text-xs text-slate-500 mt-1">{formatDate(detail?.receivedAt ?? selectedListItem?.receivedAt)}</p>
+                    <p className="text-xs text-slate-500">{formatDate(detail?.receivedAt ?? selectedListItem?.receivedAt)}</p>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
+                  <div className="flex items-center gap-0.5 shrink-0">
                     <button
                       type="button"
                       onClick={openReply}
                       disabled={!outlook.connected || detailLoading}
                       title="Responder"
-                      className="p-2 rounded-lg text-slate-500 hover:bg-sky-50 hover:text-sky-700 disabled:opacity-40"
+                      className="p-1.5 rounded-lg text-slate-500 hover:bg-sky-50 hover:text-sky-700 disabled:opacity-40"
                     >
-                      <span className="material-symbols-outlined text-[20px]">reply</span>
+                      <span className="material-symbols-outlined text-[18px]">reply</span>
                     </button>
                     <button
                       type="button"
                       onClick={refreshDetail}
                       disabled={detailLoading}
                       title="Actualizar desde Outlook"
-                      className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-primary disabled:opacity-40"
+                      className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-primary disabled:opacity-40"
                     >
-                      <span className={`material-symbols-outlined text-[20px] ${detailLoading ? "animate-spin" : ""}`}>
+                      <span className={`material-symbols-outlined text-[18px] ${detailLoading ? "animate-spin" : ""}`}>
                         refresh
                       </span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setDeleteTarget(detail ?? selectedListItem)}
-                      className="p-2 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600"
+                      className="p-1.5 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600"
                       title="Eliminar"
                     >
-                      <span className="material-symbols-outlined text-[20px]">delete</span>
+                      <span className="material-symbols-outlined text-[18px]">delete</span>
                     </button>
                   </div>
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-2">
+                <div className="mt-2 flex flex-wrap gap-1">
                   {["read", "replied", "closed", "pending"].map((st) => (
                     <button
                       key={st}
                       type="button"
                       disabled={saving || !detail}
                       onClick={() => handleMarkStatus(st)}
-                      className={`text-xs px-3 py-1.5 rounded-lg border transition-colors disabled:opacity-40 ${
+                      className={`text-xs px-2.5 py-1 rounded-md border transition-colors disabled:opacity-40 ${
                         detail?.status === st
                           ? "border-primary bg-primary/10 text-primary font-semibold"
                           : "border-[#E2E4D9] text-slate-600 hover:border-primary/40"
@@ -819,34 +891,35 @@ export default function EmailsPage() {
                 </div>
               </header>
 
-              <div className="shrink-0 px-4 sm:px-6 py-3 bg-slate-50/60 border-b border-[#E2E4D9] text-sm space-y-2">
-                <div className="flex gap-2">
-                  <span className="text-slate-400 w-14 shrink-0">De</span>
-                  <span className="text-slate-700 break-all">{detail?.sender ?? selectedListItem?.sender}</span>
+              <div className="shrink-0 px-3 sm:px-4 py-2 bg-slate-50/60 border-b border-[#E2E4D9] text-sm space-y-1">
+                <div className="flex gap-2 min-w-0">
+                  <span className="text-slate-400 w-10 shrink-0">De</span>
+                  <span className="text-slate-700 break-all truncate">{detail?.sender ?? selectedListItem?.sender}</span>
                 </div>
-                <div className="flex gap-2">
-                  <span className="text-slate-400 w-14 shrink-0">Para</span>
-                  <span className="text-slate-600 break-all">{detail?.recipients || "—"}</span>
+                <div className="flex gap-2 min-w-0">
+                  <span className="text-slate-400 w-10 shrink-0">Para</span>
+                  <span className="text-slate-600 break-all truncate">{detail?.recipients || "—"}</span>
                 </div>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 {detail?.proveedor && (
-                  <div className="flex gap-2 items-center">
-                    <span className="text-slate-400 w-14 shrink-0">Prov.</span>
+                  <div className="flex gap-1 items-center min-w-0">
+                    <span className="text-slate-400 shrink-0">Prov.</span>
                     <Link
                       to="/proveedores"
-                      className="inline-flex items-center gap-1 text-primary hover:underline font-medium"
+                      className="inline-flex items-center gap-0.5 text-primary hover:underline font-medium truncate"
                     >
-                      <span className="material-symbols-outlined text-[16px]">factory</span>
-                      {detail.proveedorNombre ?? `Proveedor #${detail.proveedor}`}
+                      <span className="material-symbols-outlined text-[14px]">factory</span>
+                      {detail.proveedorNombre ?? `#${detail.proveedor}`}
                     </Link>
                   </div>
                 )}
-                <div className="flex gap-2 items-center">
-                  <span className="text-slate-400 w-14 shrink-0">Cat.</span>
+                <div className="flex gap-1 items-center flex-1 min-w-[140px]">
+                  <span className="text-slate-400 shrink-0">Cat.</span>
                   <select
                     value={detail?.categoriaId ?? ""}
                     onChange={(e) => handleCategoriaChange(e.target.value)}
                     disabled={saving || !detail}
-                    className="flex-1 max-w-xs text-sm border border-[#E2E4D9] rounded-lg px-2 py-1.5 bg-white disabled:opacity-50"
+                    className="flex-1 min-w-0 text-sm border border-[#E2E4D9] rounded-md px-2 py-1.5 bg-white disabled:opacity-50"
                   >
                     <option value="">Sin categoría</option>
                     {categorias.map((cat) => (
@@ -857,15 +930,20 @@ export default function EmailsPage() {
                   </select>
                   {detail?.categoriaColor && (
                     <span
-                      className="w-4 h-4 rounded-full shrink-0 border border-slate-200"
+                      className="w-3 h-3 rounded-full shrink-0 border border-slate-200"
                       style={{ backgroundColor: detail.categoriaColor }}
                     />
                   )}
                 </div>
+                </div>
               </div>
 
               <EmailAttachmentsPanel
-                hasAttachments={detail?.hasAttachments ?? selectedListItem?.hasAttachments}
+                hasAttachments={
+                  Boolean(detail?.hasAttachments ?? selectedListItem?.hasAttachments) ||
+                  (detail?.attachments?.length ?? 0) > 0 ||
+                  bodyHasEmbeddedImages(detail?.body ?? selectedListItem?.body)
+                }
                 attachments={detail?.attachments ?? []}
                 loading={attachmentsLoading}
                 onSync={() => detail?.id && loadAttachmentsForEmail(detail.id)}
@@ -873,19 +951,28 @@ export default function EmailsPage() {
                 onPreview={handlePreviewAttachment}
               />
 
-              <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5">
+              <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-3">
                 {detailLoading && (
-                  <div className="flex items-center gap-2 text-sm text-slate-500 mb-4">
-                    <span className="material-symbols-outlined animate-spin text-primary">progress_activity</span>
-                    Cargando mensaje completo…
+                  <div className="flex items-center gap-1.5 text-xs text-slate-500 mb-2">
+                    <span className="material-symbols-outlined text-[16px] animate-spin text-primary">progress_activity</span>
+                    Cargando…
                   </div>
                 )}
                 {detailError && (
-                  <div className="mb-4 rounded-lg bg-amber-50 border border-amber-100 px-3 py-2 text-sm text-amber-800">
-                    No se pudo refrescar desde Graph: {detailError}. Mostrando copia local.
+                  <div className="mb-2 rounded-md bg-amber-50 border border-amber-100 px-2 py-1.5 text-xs text-amber-800">
+                    No se pudo refrescar el mensaje: {detailError}. Mostrando copia local.
                   </div>
                 )}
-                <EmailBody email={detail ?? selectedListItem} />
+                {attachmentError && (
+                  <div className="mb-2 rounded-md bg-amber-50 border border-amber-100 px-2 py-1.5 text-xs text-amber-800">
+                    No se pudieron cargar los adjuntos: {attachmentError}. Pulsa «Actualizar lista» en adjuntos.
+                  </div>
+                )}
+                <EmailBody
+                  email={detail ?? selectedListItem}
+                  attachments={detail?.attachments ?? []}
+                  fetchBlob={detail?.id ? fetchAttachmentBlob : undefined}
+                />
               </div>
             </>
           )}
@@ -918,21 +1005,17 @@ export default function EmailsPage() {
       )}
 
       {attachmentPreview && (
-        <Modal title={attachmentPreview.name} onClose={closeAttachmentPreview} size="lg">
-          <div className="flex justify-center bg-slate-50 rounded-lg p-2 max-h-[70vh] overflow-auto">
-            <img
-              src={attachmentPreview.url}
-              alt={attachmentPreview.name}
-              className="max-w-full h-auto object-contain"
-            />
-          </div>
-        </Modal>
+        <AttachmentPreviewModal
+          preview={attachmentPreview}
+          onClose={closeAttachmentPreview}
+          onDownload={handleDownloadAttachment}
+        />
       )}
 
       {deleteTarget && (
         <Modal title="Eliminar correo" onClose={() => setDeleteTarget(null)} size="sm">
           <p className="text-sm text-slate-600 mb-6">
-            ¿Eliminar <strong>{deleteTarget.subject}</strong>? Esta acción no borra el mensaje en Outlook.
+            ¿Eliminar <strong>{deleteTarget.subject}</strong> de la aplicación? No se volverá a importar desde Outlook (el mensaje puede seguir en tu bandeja de Hotmail/Outlook).
           </p>
           <div className="flex justify-end gap-3">
             <button

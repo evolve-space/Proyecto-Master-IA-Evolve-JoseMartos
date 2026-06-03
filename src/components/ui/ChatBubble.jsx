@@ -459,7 +459,7 @@ export default function ChatBubble() {
       {/* ── Panel de chat ─────────────────────────────────────────── */}
       {open && (
         <div
-          className="fixed bottom-24 right-6 z-50 flex flex-col w-80 sm:w-96 rounded-2xl shadow-2xl overflow-hidden"
+          className="fixed bottom-[4.25rem] right-4 z-50 flex flex-col w-80 sm:w-96 rounded-2xl shadow-2xl overflow-hidden"
           style={{ height: '520px', background: 'var(--color-surface-container-lowest)' }}
         >
           {/* Header */}
@@ -609,7 +609,7 @@ export default function ChatBubble() {
       {/* ── Botón burbuja flotante ─────────────────────────────────── */}
       <button
         onClick={() => setOpen((prev) => !prev)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95 hover:shadow-xl"
+        className="fixed bottom-4 right-4 z-50 w-11 h-11 rounded-full shadow-md flex items-center justify-center transition-all active:scale-95 hover:shadow-lg"
         style={{
           background: open ? 'var(--color-secondary)' : 'var(--color-primary)',
           color: open ? 'var(--color-on-secondary)' : 'var(--color-on-primary)',
@@ -618,12 +618,12 @@ export default function ChatBubble() {
       >
         {/* Badge con número de mensajes cuando está cerrado */}
         {!open && msgCount > 0 && (
-          <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full text-xs font-bold flex items-center justify-center"
+          <span className="absolute -top-0.5 -right-0.5 min-w-[1.125rem] h-[1.125rem] px-0.5 rounded-full text-[10px] font-bold flex items-center justify-center"
             style={{ background: 'var(--color-error)', color: '#fff' }}>
             {msgCount > 99 ? '99+' : msgCount}
           </span>
         )}
-        <span className="material-symbols-outlined text-2xl">
+        <span className="material-symbols-outlined text-[22px]">
           {open ? 'close' : 'chat'}
         </span>
       </button>

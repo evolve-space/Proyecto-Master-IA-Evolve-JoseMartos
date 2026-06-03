@@ -41,3 +41,46 @@ export function isImageAttachment(att) {
   const name = String(att?.name ?? "").toLowerCase();
   return type.startsWith("image/") || /\.(png|jpe?g|gif|webp|bmp|svg)$/.test(name);
 }
+
+export function isPdfAttachment(att) {
+  const type = String(att?.contentType ?? "").toLowerCase();
+  const name = String(att?.name ?? "").toLowerCase();
+  return type === "application/pdf" || name.endsWith(".pdf");
+}
+
+export function getAttachmentPreviewKind(blob, att) {
+  const type = String(blob?.type ?? att?.contentType ?? "").toLowerCase();
+  const name = String(att?.name ?? "").toLowerCase();
+  if (type.startsWith("image/") || isImageAttachment(att)) return "image";
+  if (type === "application/pdf" || name.endsWith(".pdf") || isPdfAttachment(att)) return "pdf";
+  return "file";
+}
+
+export function getAttachmentId(att) {
+  return att?.id ?? att?.attachmentId ?? null;
+}
+
+export function normalizeCid(value) {
+  return String(value ?? "")
+    .replace(/^cid:/i, "")
+    .replace(/^<|>$/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+export function bodyHasEmbeddedImages(body) {
+  return /cid:/i.test(String(body ?? ""));
+}
+
+/** @param {Array<{contentId?: string, name?: string}>} attachments */
+export function buildCidAttachmentMap(attachments) {
+  const map = new Map();
+  for (const att of attachments ?? []) {
+    const id = getAttachmentId(att);
+    if (!id) continue;
+    const cid = att.contentId ?? att.content_id;
+    if (cid) map.set(normalizeCid(cid), att);
+    if (att.name) map.set(normalizeCid(att.name), att);
+  }
+  return map;
+}

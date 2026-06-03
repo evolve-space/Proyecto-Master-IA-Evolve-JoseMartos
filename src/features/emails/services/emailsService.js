@@ -1,4 +1,5 @@
 import { apiClient } from "../../../services/apiClient";
+import { getAttachmentId } from "../utils/attachmentUtils";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
 
@@ -34,8 +35,11 @@ export const emailsService = {
   /** Equivalente a `php bin/console app:sync-emails` (bandeja completa). */
   syncFromGraph: ({ all = true, top = 50, includeAttachments = true } = {}) =>
     apiClient.post("/emails/sync", { all, top, includeAttachments }),
-  downloadAttachment: (id, attachmentId, filename = "adjunto") =>
-    fetch(
+  downloadAttachment: (id, attOrId, filename = "adjunto") => {
+    const attachmentId = typeof attOrId === "object" ? getAttachmentId(attOrId) : attOrId;
+    const name =
+      typeof attOrId === "object" ? attOrId?.name ?? filename : filename;
+    return fetch(
       `${API_BASE}/emails/${id}/attachments/${encodeURIComponent(attachmentId)}/download`,
       {
         headers: {
@@ -51,14 +55,16 @@ export const emailsService = {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = filename;
+      a.download = name;
       document.body.appendChild(a);
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-    }),
-  fetchAttachmentBlob: (id, attachmentId) =>
-    fetch(
+    });
+  },
+  fetchAttachmentBlob: (id, attOrId) => {
+    const attachmentId = typeof attOrId === "object" ? getAttachmentId(attOrId) : attOrId;
+    return fetch(
       `${API_BASE}/emails/${id}/attachments/${encodeURIComponent(attachmentId)}/download`,
       {
         headers: {
@@ -71,5 +77,6 @@ export const emailsService = {
         throw new Error(payload?.error ?? `HTTP ${res.status}`);
       }
       return res.blob();
-    }),
+    });
+  },
 };

@@ -1,4 +1,5 @@
 import Modal from "../../../components/ui/Modal";
+import ComposeFilePreview from "./ComposeFilePreview";
 import { formatFileSize } from "../utils/attachmentUtils";
 
 const inp =
@@ -85,20 +86,21 @@ export default function EmailComposeModal({
             </label>
             <p className="text-[11px] text-slate-400">Máximo 3 MB por archivo (límite de Outlook).</p>
             {files.length > 0 && (
-              <ul className="space-y-1">
+              <ul className="space-y-2">
                 {files.map((file, i) => (
                   <li
                     key={`${file.name}-${i}`}
-                    className="flex items-center justify-between gap-2 text-xs bg-slate-50 border border-slate-100 rounded-lg px-3 py-2"
+                    className="flex items-center gap-3 text-xs bg-slate-50 border border-slate-100 rounded-lg px-3 py-2"
                   >
-                    <span className="truncate">
+                    <ComposeFilePreview file={file} />
+                    <span className="truncate flex-1 min-w-0">
                       {file.name}{" "}
                       <span className="text-slate-400">({formatFileSize(file.size)})</span>
                     </span>
                     <button
                       type="button"
                       onClick={() => removeFile(i)}
-                      className="text-red-600 hover:bg-red-50 p-1 rounded"
+                      className="text-red-600 hover:bg-red-50 p-1 rounded shrink-0"
                       aria-label="Quitar adjunto"
                     >
                       <span className="material-symbols-outlined text-[16px]">close</span>
