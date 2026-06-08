@@ -18,7 +18,12 @@ export default function SupplierHealth({ proveedores = [], ofertas = [], contrat
       </div>
       <div className="space-y-3">
         {top.map(p => (
-          <div key={p.id} className="flex items-center gap-3">
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => navigate(`/proveedores/${p.id}`)}
+            className="flex items-center gap-3 w-full text-left rounded-lg p-1 -m-1 hover:bg-slate-50 transition-colors"
+          >
             <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[11px] font-bold flex-shrink-0">
               {p.nombre?.[0]}
             </div>
@@ -33,7 +38,7 @@ export default function SupplierHealth({ proveedores = [], ofertas = [], contrat
               p.status === 'ok' ? 'bg-[#62C234]' :
               p.status === 'warning' ? 'bg-amber-400' : 'bg-slate-200'
             }`} />
-          </div>
+          </button>
         ))}
         {top.length === 0 && <p className="text-sm text-slate-400">Sin proveedores</p>}
       </div>

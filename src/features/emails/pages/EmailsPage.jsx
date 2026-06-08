@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Modal from "../../../components/ui/Modal";
 import AttachmentPreviewModal from "../components/AttachmentPreviewModal";
 import CategoriesModal from "../components/CategoriesModal";
@@ -11,6 +11,35 @@ import { addExcludedMessageId, filterExcludedEmails } from "../utils/excludedEma
 import { emailCategoriasService } from "../services/emailCategoriasService";
 import { emailsService } from "../services/emailsService";
 import { outlookOAuthService } from "../services/outlookOAuthService";
+import { getEmailEntityLink, urgencyLabel, urgencyStyle } from "../utils/emailEntityLink";
+import { proveedoresService } from "../../proveedores/services/proveedoresService";
+import {
+  CreateMuestraFromEmailModal,
+  CreateOfertaFromEmailModal,
+  emailDateToInput,
+  guessProductFromSubject,
+} from "../components/EmailEntityModals";
+
+const EMPTY_OFERTA = {
+  proveedorId: "",
+  fecha: "",
+  producto: "",
+  grado: "Food Grade",
+  cantidad: "",
+  precio: "",
+  moneda: "EUR",
+  incoterm: "CIF",
+  tipo: "Contrato",
+};
+
+const EMPTY_MUESTRA = {
+  proveedorId: "",
+  fecha: "",
+  producto: "",
+  estado: "Pendiente",
+  idLote: "",
+  grado: "FOOD",
+};
 
 const EMPTY_COMPOSE = { to: "", cc: "", subject: "", body: "", files: [] };
 const AUTO_SYNC_MS = 60_000;
@@ -118,8 +147,15 @@ export default function EmailsPage() {
   const [outlook, setOutlook] = useState({ connected: false, email: null, loading: true });
   const [connectingOutlook, setConnectingOutlook] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [categorias, setCategorias] = useState([]);
   const [categoriaFilter, setCategoriaFilter] = useState("all");
+  const [urgencyFilter, setUrgencyFilter] = useState("all");
+  const [classifying, setClassifying] = useState(false);
+  const [proveedores, setProveedores] = useState([]);
+  const [entityModal, setEntityModal] = useState(null);
+  const [entityForm, setEntityForm] = useState(EMPTY_OFERTA);
+  const [entitySaving, setEntitySaving] = useState(false);
   const [showCategoriesModal, setShowCategoriesModal] = useState(false);
   const [composeMode, setComposeMode] = useState(null);
   const [composeForm, setComposeForm] = useState(EMPTY_COMPOSE);
@@ -175,6 +211,7 @@ export default function EmailsPage() {
     loadList();
     loadOutlookStatus();
     loadCategorias();
+    proveedoresService.getAll().then(setProveedores).catch(() => setProveedores([]));
   }, [loadList, loadOutlookStatus, loadCategorias]);
 
   useEffect(() => {
@@ -234,6 +271,7 @@ export default function EmailsPage() {
       const categoriaOk =
         categoriaFilter === "all" ||
         (categoriaFilter === "none" ? !email.categoriaId : email.categoriaId === Number(categoriaFilter));
+      const urgencyOk = urgencyFilter === "all" || (email.urgency || "normal") === urgencyFilter;
       const textOk =
         q === "" ||
         [email.subject, email.sender, email.recipients, email.proveedorNombre, email.categoriaNombre, email.messageId]
@@ -241,9 +279,9 @@ export default function EmailsPage() {
           .join(" ")
           .toLowerCase()
           .includes(q);
-      return statusOk && categoriaOk && textOk;
+      return statusOk && categoriaOk && urgencyOk && textOk;
     });
-  }, [emails, search, statusFilter, categoriaFilter]);
+  }, [emails, search, statusFilter, categoriaFilter, urgencyFilter]);
 
   const selectedListItem = useMemo(
     () => emails.find((e) => e.id === selectedId) ?? null,
@@ -542,6 +580,69 @@ export default function EmailsPage() {
     }
   };
 
+  const handleClassify = async (emailId, { silent = false } = {}) => {
+    if (!emailId) return;
+    setClassifying(true);
+    try {
+      const res = await emailsService.classify(emailId);
+      if (res?.email) applyEmailUpdate(res.email);
+      if (!silent) setError(null);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setClassifying(false);
+    }
+  };
+
+  const openEntityModal = (kind, email) => {
+    const base = {
+      proveedorId: email?.proveedor ? String(email.proveedor) : "",
+      fecha: emailDateToInput(email?.receivedAt),
+      producto: guessProductFromSubject(email?.subject),
+    };
+    setEntityForm(kind === "oferta" ? { ...EMPTY_OFERTA, ...base } : { ...EMPTY_MUESTRA, ...base });
+    setEntityModal(kind);
+  };
+
+  const setEntityField = (k, v) => setEntityForm((f) => ({ ...f, [k]: v }));
+
+  const handleCreateEntity = async (e) => {
+    e.preventDefault();
+    const emailId = detail?.id ?? selectedListItem?.id;
+    if (!emailId || !entityModal) return;
+    setEntitySaving(true);
+    try {
+      const payload = { ...entityForm, proveedorId: Number(entityForm.proveedorId) };
+      const res =
+        entityModal === "oferta"
+          ? await emailsService.createOferta(emailId, payload)
+          : await emailsService.createMuestra(emailId, payload);
+      if (res?.email) applyEmailUpdate(res.email);
+      setEntityModal(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setEntitySaving(false);
+    }
+  };
+
+  const handleClassifyPending = async () => {
+    setClassifying(true);
+    try {
+      await emailsService.classifyPending();
+      const list = filterExcludedEmails(await emailsService.getAll());
+      setEmails(list);
+      if (selectedId) {
+        const updated = list.find((e) => e.id === selectedId);
+        if (updated) setDetail(updated);
+      }
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setClassifying(false);
+    }
+  };
+
   const handleCategoriaChange = async (categoriaId) => {
     if (!detail) return;
     setSaving(true);
@@ -657,6 +758,15 @@ export default function EmailsPage() {
         <div className="flex items-center gap-1">
           <button
             type="button"
+            onClick={handleClassifyPending}
+            disabled={classifying}
+            title="Clasificar correos sin categorizar (IA + reglas)"
+            className="p-1.5 rounded-lg border border-[#E2E4D9] bg-white text-slate-600 hover:border-primary/40 disabled:opacity-40"
+          >
+            <span className={`material-symbols-outlined text-[18px] ${classifying ? "animate-spin" : ""}`}>auto_awesome</span>
+          </button>
+          <button
+            type="button"
             onClick={() => setShowCategoriesModal(true)}
             title="Categorías"
             className="p-1.5 rounded-lg border border-[#E2E4D9] bg-white text-slate-600 hover:border-primary/40"
@@ -732,6 +842,16 @@ export default function EmailsPage() {
             </option>
           ))}
         </select>
+        <select
+          value={urgencyFilter}
+          onChange={(e) => setUrgencyFilter(e.target.value)}
+          className="px-2 py-2 text-sm border border-[#E2E4D9] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-primary/30 max-w-[110px]"
+        >
+          <option value="all">Urgencia</option>
+          <option value="alta">Alta</option>
+          <option value="normal">Normal</option>
+          <option value="baja">Baja</option>
+        </select>
       </div>
 
       {/* Panel principal */}
@@ -791,6 +911,11 @@ export default function EmailsPage() {
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusStyles[email.status] ?? statusStyles.closed}`}>
                           {statusLabel[email.status] ?? email.status}
                         </span>
+                        {(email.urgency === "alta" || email.urgency === "baja") && (
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${urgencyStyle[email.urgency]}`}>
+                            {urgencyLabel[email.urgency]}
+                          </span>
+                        )}
                         {email.categoriaNombre && (
                           <span
                             className="text-xs font-medium px-2 py-0.5 rounded-full text-white truncate max-w-[100px]"
@@ -852,6 +977,47 @@ export default function EmailsPage() {
                     </button>
                     <button
                       type="button"
+                      onClick={() => openEntityModal("oferta", detail ?? selectedListItem)}
+                      disabled={detailLoading || !(detail?.id ?? selectedListItem?.id)}
+                      title="Crear oferta desde este correo"
+                      className="p-1.5 rounded-lg text-slate-500 hover:bg-primary/10 hover:text-primary disabled:opacity-40"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">local_offer</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openEntityModal("muestra", detail ?? selectedListItem)}
+                      disabled={detailLoading || !(detail?.id ?? selectedListItem?.id)}
+                      title="Registrar muestra desde este correo"
+                      className="p-1.5 rounded-lg text-slate-500 hover:bg-amber-50 hover:text-amber-700 disabled:opacity-40"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">science</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleClassify(detail?.id ?? selectedListItem?.id)}
+                      disabled={classifying || detailLoading || !(detail?.id ?? selectedListItem?.id)}
+                      title="Reclasificar (reglas + IA)"
+                      className="p-1.5 rounded-lg text-slate-500 hover:bg-violet-50 hover:text-violet-700 disabled:opacity-40"
+                    >
+                      <span className={`material-symbols-outlined text-[18px] ${classifying ? "animate-spin" : ""}`}>
+                        auto_awesome
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const id = detail?.id ?? selectedListItem?.id;
+                        if (id) navigate(`/calendario?emailId=${id}`);
+                      }}
+                      disabled={detailLoading || !(detail?.id ?? selectedListItem?.id)}
+                      title="Agendar en calendario"
+                      className="p-1.5 rounded-lg text-slate-500 hover:bg-[#62C234]/10 hover:text-[#276c00] disabled:opacity-40"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">event</span>
+                    </button>
+                    <button
+                      type="button"
                       onClick={refreshDetail}
                       disabled={detailLoading}
                       title="Actualizar desde Outlook"
@@ -901,18 +1067,31 @@ export default function EmailsPage() {
                   <span className="text-slate-600 break-all truncate">{detail?.recipients || "—"}</span>
                 </div>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                {detail?.proveedor && (
-                  <div className="flex gap-1 items-center min-w-0">
-                    <span className="text-slate-400 shrink-0">Prov.</span>
-                    <Link
-                      to="/proveedores"
-                      className="inline-flex items-center gap-0.5 text-primary hover:underline font-medium truncate"
-                    >
-                      <span className="material-symbols-outlined text-[14px]">factory</span>
-                      {detail.proveedorNombre ?? `#${detail.proveedor}`}
-                    </Link>
+                {detail?.urgency && (
+                  <div className="flex gap-1 items-center">
+                    <span className="text-slate-400 shrink-0">Urg.</span>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${urgencyStyle[detail.urgency] ?? urgencyStyle.normal}`}>
+                      {urgencyLabel[detail.urgency] ?? detail.urgency}
+                    </span>
                   </div>
                 )}
+                {(() => {
+                  const entity = getEmailEntityLink(detail);
+                  if (!entity) return null;
+                  return (
+                    <div className="flex gap-1 items-center min-w-0">
+                      <span className="text-slate-400 shrink-0">Ent.</span>
+                      <Link
+                        to={entity.to}
+                        className="inline-flex items-center gap-0.5 text-primary hover:underline font-medium truncate"
+                      >
+                        <span className="material-symbols-outlined text-[14px]">link</span>
+                        {entity.label}
+                        {entity.sub ? ` · ${entity.sub}` : ""}
+                      </Link>
+                    </div>
+                  );
+                })()}
                 <div className="flex gap-1 items-center flex-1 min-w-[140px]">
                   <span className="text-slate-400 shrink-0">Cat.</span>
                   <select
@@ -936,6 +1115,18 @@ export default function EmailsPage() {
                   )}
                 </div>
                 </div>
+                {(detail?.classificationSource || detail?.classificationReason) && (
+                  <p className="text-xs text-slate-500 pt-1 border-t border-[#E2E4D9]/60 mt-1">
+                    {detail.classificationSource && (
+                      <span className="font-medium text-slate-600">
+                        Clasificación: {detail.classificationSource === "ai" ? "IA" : "Reglas"}
+                      </span>
+                    )}
+                    {detail.classificationReason && (
+                      <span className="text-slate-500"> · {detail.classificationReason}</span>
+                    )}
+                  </p>
+                )}
               </div>
 
               <EmailAttachmentsPanel
@@ -978,6 +1169,30 @@ export default function EmailsPage() {
           )}
         </section>
       </div>
+
+      {entityModal === "oferta" && (
+        <CreateOfertaFromEmailModal
+          email={detail ?? selectedListItem}
+          proveedores={proveedores}
+          form={entityForm}
+          set={setEntityField}
+          onClose={() => setEntityModal(null)}
+          onSubmit={handleCreateEntity}
+          saving={entitySaving}
+        />
+      )}
+
+      {entityModal === "muestra" && (
+        <CreateMuestraFromEmailModal
+          email={detail ?? selectedListItem}
+          proveedores={proveedores}
+          form={entityForm}
+          set={setEntityField}
+          onClose={() => setEntityModal(null)}
+          onSubmit={handleCreateEntity}
+          saving={entitySaving}
+        />
+      )}
 
       {showCategoriesModal && (
         <CategoriesModal

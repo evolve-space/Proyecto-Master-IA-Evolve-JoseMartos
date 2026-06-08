@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { muestrasService } from '../services/muestrasService'
 import { proveedoresService } from '../../proveedores/services/proveedoresService'
 import { usuariosService } from '../../usuarios/services/usuariosService'
@@ -39,6 +40,7 @@ const EMPTY = {
 }
 
 export default function MuestrasPage() {
+  const navigate = useNavigate()
   const [muestras, setMuestras]       = useState([])
   const [proveedores, setProveedores] = useState([])
   const [usuarios, setUsuarios]       = useState([])
@@ -67,7 +69,7 @@ export default function MuestrasPage() {
 
   const openCreate = ()  => { setForm(EMPTY); setSelected(null); setModal('create') }
   const openEdit   = m   => { setForm({ ...EMPTY, ...m }); setSelected(m); setModal('edit') }
-  const openDetail = m   => { setSelected(m); setModal('detail') }
+  const openDetail = m   => navigate(`/muestras/${m.id}`)
   const openDelete = m   => { setSelected(m); setModal('delete') }
   const close      = ()  => { setModal(null); setSelected(null) }
   const set        = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -180,7 +182,11 @@ export default function MuestrasPage() {
                     <span className={`px-3 py-1 rounded-full text-[12px] font-bold ${estadoStyle[m.estado] ?? 'bg-slate-100 text-slate-500'}`}>{m.estado}</span>
                   </td>
                   <td className="px-6 py-4 font-label-md text-on-surface">{m.idLote}</td>
-                  <td className="px-6 py-4 text-body-sm">{m.producto}</td>
+                  <td className="px-6 py-4 text-body-sm">
+                    <button type="button" onClick={() => openDetail(m)} className="hover:text-primary hover:underline text-left">
+                      {m.producto}
+                    </button>
+                  </td>
                   <td className="px-6 py-4 text-body-sm text-slate-500">{m.grado}</td>
                   <td className="px-6 py-4 text-body-sm text-slate-500">{m.usuarioNombre ?? '-'}</td>
                   <td className="px-6 py-4 text-body-sm text-slate-400 max-w-[200px] truncate">{m.observaciones ?? '-'}</td>

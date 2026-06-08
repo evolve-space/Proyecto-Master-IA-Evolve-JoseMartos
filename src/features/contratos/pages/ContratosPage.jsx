@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { contratosService } from '../services/contratosService'
 import { proveedoresService } from '../../proveedores/services/proveedoresService'
 import Modal from '../../../components/ui/Modal'
@@ -34,6 +35,7 @@ const EMPTY = {
 }
 
 export default function ContratosPage() {
+  const navigate = useNavigate()
   const [contratos, setContratos]     = useState([])
   const [proveedores, setProveedores] = useState([])
   const [loading, setLoading]         = useState(true)
@@ -61,7 +63,7 @@ export default function ContratosPage() {
 
   const openCreate = ()  => { setForm(EMPTY); setSelected(null); setModal('create') }
   const openEdit   = c   => { setForm({ ...EMPTY, ...c }); setSelected(c); setModal('edit') }
-  const openDetail = c   => { setSelected(c); setModal('detail') }
+  const openDetail = c   => navigate(`/contratos/${c.id}`)
   const openDelete = c   => { setSelected(c); setModal('delete') }
   const close      = ()  => { setModal(null); setSelected(null) }
   const set        = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -171,7 +173,11 @@ export default function ContratosPage() {
               )}
               {filtered.map(c => (
                 <tr key={c.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-6 py-4 font-label-md text-primary">{c.numeroContrato}</td>
+                  <td className="px-6 py-4 font-label-md">
+                    <button type="button" onClick={() => openDetail(c)} className="text-primary hover:underline">
+                      {c.numeroContrato}
+                    </button>
+                  </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center text-[10px] font-bold">{c.proveedorNombre?.[0]}</div>
@@ -179,7 +185,11 @@ export default function ContratosPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-body-sm text-slate-500 whitespace-nowrap">{fmtDate(c.fecha)}</td>
-                  <td className="px-6 py-4 text-body-sm">{c.producto}</td>
+                  <td className="px-6 py-4 text-body-sm">
+                    <button type="button" onClick={() => openDetail(c)} className="hover:text-primary hover:underline text-left">
+                      {c.producto}
+                    </button>
+                  </td>
                   <td className="px-6 py-4">
                     <span className={`px-3 py-1 rounded-full text-[12px] font-bold ${gradoStyle[c.grado] ?? 'bg-slate-100 text-slate-500'}`}>{c.grado}</span>
                   </td>

@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 const CFG = {
   warning: { icon: 'warning',      bg: 'bg-amber-50 border-amber-100',     txt: 'text-amber-600' },
   info:    { icon: 'info',          bg: 'bg-blue-50 border-blue-100',        txt: 'text-blue-500' },
@@ -20,10 +22,19 @@ export default function SystemMessage({ alerts = [], totalEurYear = 0 }) {
       )}
       {alerts.map((a, i) => {
         const { icon, bg, txt } = CFG[a.type] ?? CFG.info
-        return (
-          <div key={i} className={`p-3 rounded-xl border flex items-start gap-2 ${bg}`}>
+        const inner = (
+          <>
             <span className={`material-symbols-outlined text-[18px] flex-shrink-0 mt-0.5 ${txt}`}>{icon}</span>
             <p className="text-[12px] text-slate-700 leading-snug">{a.text}</p>
+          </>
+        )
+        return a.link ? (
+          <Link key={i} to={a.link} className={`p-3 rounded-xl border flex items-start gap-2 ${bg} hover:opacity-90 transition-opacity`}>
+            {inner}
+          </Link>
+        ) : (
+          <div key={i} className={`p-3 rounded-xl border flex items-start gap-2 ${bg}`}>
+            {inner}
           </div>
         )
       })}

@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ofertasService } from '../services/ofertasService'
 import { proveedoresService } from '../../proveedores/services/proveedoresService'
 import Modal from '../../../components/ui/Modal'
@@ -32,6 +33,7 @@ const EMPTY = {
 }
 
 export default function OfertasPage() {
+  const navigate = useNavigate()
   const [ofertas, setOfertas]         = useState([])
   const [proveedores, setProveedores] = useState([])
   const [loading, setLoading]         = useState(true)
@@ -59,7 +61,7 @@ export default function OfertasPage() {
 
   const openCreate = ()  => { setForm(EMPTY); setSelected(null); setModal('create') }
   const openEdit   = o   => { setForm({ ...EMPTY, ...o }); setSelected(o); setModal('edit') }
-  const openDetail = o   => { setSelected(o); setModal('detail') }
+  const openDetail = o   => navigate(`/ofertas/${o.id}`)
   const openDelete = o   => { setSelected(o); setModal('delete') }
   const close      = ()  => { setModal(null); setSelected(null) }
   const set        = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -174,7 +176,11 @@ export default function OfertasPage() {
                       <span className="text-body-sm font-label-md">{o.proveedorNombre}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-body-sm">{o.producto}</td>
+                  <td className="px-6 py-4 text-body-sm">
+                    <button type="button" onClick={() => openDetail(o)} className="hover:text-primary hover:underline text-left">
+                      {o.producto}
+                    </button>
+                  </td>
                   <td className="px-6 py-4 text-body-sm text-slate-500">{o.grado}</td>
                   <td className="px-6 py-4 font-label-md">{parseFloat(o.cantidad).toLocaleString('es-ES')}</td>
                   <td className="px-6 py-4 font-label-md">{parseFloat(o.precio).toFixed(2)}</td>

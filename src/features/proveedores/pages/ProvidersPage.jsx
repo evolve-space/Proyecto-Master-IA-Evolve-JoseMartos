@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { proveedoresService } from '../services/proveedoresService'
 import { sendProveedorEmail } from '../services/proveedoresOutlookService'
 import Modal from '../../../components/ui/Modal'
@@ -50,6 +51,7 @@ Gracias y quedamos atentos.
 }
 
 export default function ProvidersPage() {
+  const navigate = useNavigate()
   const [proveedores, setProveedores] = useState([])
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState(null)
@@ -79,7 +81,7 @@ export default function ProvidersPage() {
 
   const openCreate = ()  => { setForm(EMPTY); setSelected(null); setModal('create') }
   const openEdit   = p   => { setForm({ ...EMPTY, ...p }); setSelected(p); setModal('edit') }
-  const openDetail = p   => { setSelected(p); setModal('detail') }
+  const openDetail = p   => { navigate(`/proveedores/${p.id}`) }
   const openDelete = p   => { setSelected(p); setModal('delete') }
   const openSendMail = p => {
     setSelected(p)
@@ -220,7 +222,13 @@ export default function ProvidersPage() {
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-primary-container/20 flex items-center justify-center font-bold text-primary text-sm">{p.nombre[0]}</div>
                       <div>
-                        <p className="font-label-md text-on-surface">{p.nombre}</p>
+                        <button
+                          type="button"
+                          onClick={() => openDetail(p)}
+                          className="font-label-md text-on-surface hover:text-primary hover:underline text-left"
+                        >
+                          {p.nombre}
+                        </button>
                         <p className="text-body-sm text-slate-400">{p.telefono}</p>
                       </div>
                     </div>

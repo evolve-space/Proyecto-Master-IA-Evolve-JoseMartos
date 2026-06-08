@@ -4,15 +4,17 @@ import { contratosService }     from '../../contratos/services/contratosService'
 import { muestrasService }      from '../../muestras/services/muestrasService'
 import { importacionesService } from '../../importaciones/services/importacionesService'
 import { proveedoresService }   from '../../proveedores/services/proveedoresService'
+import { dashboardService }     from '../services/dashboardService'
 import SummaryCards             from '../components/SummaryCards'
 import RecentActivity           from '../components/RecentActivity'
 import ActionCard               from '../components/ActionCard'
 import SupplierHealth           from '../components/SupplierHealth'
-import SystemMessage            from '../components/SystemMessage'
+import CalendarAlerts           from '../components/CalendarAlerts'
 import { MonthlyImportsChart, MuestrasDonut } from '../components/Charts'
 
 export default function DashboardPage() {
   const [data, setData]       = useState(null)
+  const [alertData, setAlertData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState(null)
 
@@ -23,10 +25,12 @@ export default function DashboardPage() {
       muestrasService.getAll(),
       importacionesService.getAll(),
       proveedoresService.getAll(),
+      dashboardService.getAlerts().catch(() => null),
     ])
-      .then(([ofertas, contratos, muestras, importaciones, proveedores]) =>
+      .then(([ofertas, contratos, muestras, importaciones, proveedores, alerts]) => {
         setData({ ofertas, contratos, muestras, importaciones, proveedores })
-      )
+        setAlertData(alerts)
+      })
       .catch((err) => {
         console.error(err)
         setError(err)
@@ -60,21 +64,10 @@ export default function DashboardPage() {
     new Date(c.fechaCaducidad) <= in30days
   )
   const muestrasAnalisis   = muestras.filter(m => m.estado === 'Análisis')
-  const muestrasPendientes = muestras.filter(m => m.estado === 'Pendiente')
   const importYear   = importaciones.filter(i => i.fechaDuaAlbaran?.startsWith(String(thisYear)))
   const totalKgYear  = importYear.reduce((s, i) => s + parseFloat(i.cantidad   ?? 0), 0)
   const totalEurYear = importaciones.reduce((s, i) => s + parseFloat(i.importeEur ?? 0), 0)
   const recentOfertas = [...ofertas].sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).slice(0, 8)
-
-  const alerts = []
-  if (contratosProxVencer.length > 0)
-    alerts.push({ type: 'warning', text: `${contratosProxVencer.length} contrato${contratosProxVencer.length > 1 ? 's' : ''} próximo${contratosProxVencer.length > 1 ? 's' : ''} a vencer (< 30 días)` })
-  if (muestrasPendientes.length > 0)
-    alerts.push({ type: 'info', text: `${muestrasPendientes.length} muestra${muestrasPendientes.length > 1 ? 's' : ''} pendiente${muestrasPendientes.length > 1 ? 's' : ''} de revisión` })
-  if (proveedores.filter(p => !p.documentacion).length > 0)
-    alerts.push({ type: 'warning', text: `${proveedores.filter(p => !p.documentacion).length} proveedor${proveedores.filter(p => !p.documentacion).length > 1 ? 'es' : ''} sin documentación completa` })
-  if (alerts.length === 0)
-    alerts.push({ type: 'ok', text: 'Todo en orden — sin alertas pendientes.' })
 
   return (
     <>
@@ -86,6 +79,7 @@ export default function DashboardPage() {
         muestrasAnalisis={muestrasAnalisis}
         importYear={importYear}
         totalKgYear={totalKgYear}
+        totalEurYear={totalEurYear}
       />
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -103,8 +97,11 @@ export default function DashboardPage() {
         {/* Columna derecha — acciones + proveedores + alertas */}
         <div className="flex flex-col gap-6">
           <ActionCard />
+          <CalendarAlerts
+            upcomingEvents={alertData?.upcomingEvents ?? []}
+            eventsNext24h={alertData?.eventsNext24h ?? 0}
+          />
           <SupplierHealth proveedores={proveedores} ofertas={ofertas} contratos={contratos} />
-          <SystemMessage alerts={alerts} totalEurYear={totalEurYear} />
         </div>
       </div>
 

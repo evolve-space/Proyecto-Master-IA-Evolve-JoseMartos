@@ -114,7 +114,11 @@ export default function RecentActivity({ ofertas = [] }) {
           </thead>
           <tbody className="divide-y divide-[#E2E4D9]">
             {ofertas.map(o => (
-              <tr key={o.id} className="hover:bg-slate-50/50 transition-colors">
+              <tr
+                key={o.id}
+                onClick={() => navigate(`/ofertas/${o.id}`)}
+                className="hover:bg-slate-50/50 transition-colors cursor-pointer"
+              >
                 <td className="px-6 py-3 text-[12px] text-slate-400 whitespace-nowrap">{fmtDate(o.fecha)}</td>
                 <td className="px-6 py-3">
                   <div className="flex items-center gap-2">

@@ -39,7 +39,7 @@ export default function MainLayout({ children, headerTitle }) {
           onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
           sidebarOpen={sidebarOpen}
         />
-        <main className="p-4 sm:p-6 lg:p-8 flex-1">
+        <main className="p-4 sm:p-6 lg:p-8 flex-1 flex flex-col min-h-0">
           {children}
         </main>
       </div>

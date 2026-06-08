@@ -3,12 +3,18 @@ import { useAuth } from './AuthContext'
 import MainLayout        from '../components/layout/MainLayout'
 import LoginPage         from '../features/auth/pages/LoginPage'
 import DashboardPage     from '../features/dashboard/pages/DashboardPage'
-import OfertasPage       from '../features/ofertas/pages/OfertasPage'
-import ContratosPage     from '../features/contratos/pages/ContratosPage'
-import MuestrasPage      from '../features/muestras/pages/MuestrasPage'
-import ImportacionesPage from '../features/importaciones/pages/ImportacionesPage'
-import ProvidersPage     from '../features/proveedores/pages/ProvidersPage'
+import OfertasPage         from '../features/ofertas/pages/OfertasPage'
+import OfertaDetailPage    from '../features/ofertas/pages/OfertaDetailPage'
+import ContratosPage       from '../features/contratos/pages/ContratosPage'
+import ContratoDetailPage  from '../features/contratos/pages/ContratoDetailPage'
+import MuestrasPage        from '../features/muestras/pages/MuestrasPage'
+import MuestraDetailPage   from '../features/muestras/pages/MuestraDetailPage'
+import ImportacionesPage   from '../features/importaciones/pages/ImportacionesPage'
+import ImportacionDetailPage from '../features/importaciones/pages/ImportacionDetailPage'
+import ProvidersPage       from '../features/proveedores/pages/ProvidersPage'
+import ProviderDetailPage  from '../features/proveedores/pages/ProviderDetailPage'
 import EmailsPage        from '../features/emails/pages/EmailsPage'
+import CalendarioPage    from '../features/calendario/pages/CalendarioPage'
 import UsersPage         from '../features/usuarios/pages/UsersPage'
 
 function ProtectedRoute({ children }) {
@@ -55,24 +61,48 @@ const router = createBrowserRouter([
     element: <ProtectedRoute><MainLayout headerTitle="Ofertas"><OfertasPage /></MainLayout></ProtectedRoute>,
   },
   {
+    path: '/ofertas/:id',
+    element: <ProtectedRoute><MainLayout headerTitle="Detalle de oferta"><OfertaDetailPage /></MainLayout></ProtectedRoute>,
+  },
+  {
     path: '/contratos',
     element: <ProtectedRoute><MainLayout headerTitle="Contratos"><ContratosPage /></MainLayout></ProtectedRoute>,
+  },
+  {
+    path: '/contratos/:id',
+    element: <ProtectedRoute><MainLayout headerTitle="Detalle de contrato"><ContratoDetailPage /></MainLayout></ProtectedRoute>,
   },
   {
     path: '/muestras',
     element: <ProtectedRoute><MainLayout headerTitle="Muestras"><MuestrasPage /></MainLayout></ProtectedRoute>,
   },
   {
+    path: '/muestras/:id',
+    element: <ProtectedRoute><MainLayout headerTitle="Detalle de muestra"><MuestraDetailPage /></MainLayout></ProtectedRoute>,
+  },
+  {
     path: '/importaciones',
     element: <ProtectedRoute><MainLayout headerTitle="Importaciones"><ImportacionesPage /></MainLayout></ProtectedRoute>,
+  },
+  {
+    path: '/importaciones/:id',
+    element: <ProtectedRoute><MainLayout headerTitle="Detalle de importación"><ImportacionDetailPage /></MainLayout></ProtectedRoute>,
   },
   {
     path: '/proveedores',
     element: <ProtectedRoute><MainLayout headerTitle="Proveedores"><ProvidersPage /></MainLayout></ProtectedRoute>,
   },
   {
+    path: '/proveedores/:id',
+    element: <ProtectedRoute><MainLayout headerTitle="Detalle de proveedor"><ProviderDetailPage /></MainLayout></ProtectedRoute>,
+  },
+  {
     path: '/correos',
     element: <ProtectedRoute><MainLayout headerTitle="Correos"><EmailsPage /></MainLayout></ProtectedRoute>,
+  },
+  {
+    path: '/calendario',
+    element: <ProtectedRoute><MainLayout headerTitle="Calendario"><CalendarioPage /></MainLayout></ProtectedRoute>,
   },
   {
     path: '/usuarios',

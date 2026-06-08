@@ -35,6 +35,10 @@ export const emailsService = {
   /** Equivalente a `php bin/console app:sync-emails` (bandeja completa). */
   syncFromGraph: ({ all = true, top = 50, includeAttachments = true } = {}) =>
     apiClient.post("/emails/sync", { all, top, includeAttachments }),
+  classify: (id) => apiClient.post(`/emails/${id}/classify`),
+  classifyPending: () => apiClient.post("/emails/classify-pending"),
+  createOferta: (id, data) => apiClient.post(`/emails/${id}/ofertas`, data),
+  createMuestra: (id, data) => apiClient.post(`/emails/${id}/muestras`, data),
   downloadAttachment: (id, attOrId, filename = "adjunto") => {
     const attachmentId = typeof attOrId === "object" ? getAttachmentId(attOrId) : attOrId;
     const name =

@@ -1,4 +1,4 @@
-﻿export default function SummaryCards({ ofertas, contratos, contratosProxVencer, muestras, muestrasAnalisis, importYear, totalKgYear }) {
+﻿export default function SummaryCards({ ofertas, contratos, contratosProxVencer, muestras, muestrasAnalisis, importYear, totalKgYear, totalEurYear = 0 }) {
   const pctConMuestra = ofertas.length ? Math.round(ofertas.filter(o => o.muestra).length / ofertas.length * 100) : 0
   const pctConDoc     = contratos.length ? Math.round(contratos.filter(c => c.documentacion).length / contratos.length * 100) : 0
   const compra        = muestras.filter(m => m.estado === 'Compra').length
@@ -86,9 +86,14 @@
         </div>
         <p className="text-slate-500 font-label-md text-label-md mb-1">Importaciones año</p>
         <h2 className="font-h2 text-h2 text-on-surface">{importYear.length}</h2>
-        <p className="text-body-sm font-body-sm text-slate-400 mt-4">
+        <p className="text-body-sm font-body-sm text-slate-400 mt-2">
           {totalKgYear.toLocaleString('es-ES', { maximumFractionDigits: 0 })} kg importados
         </p>
+        {totalEurYear > 0 && (
+          <p className="text-sm font-semibold text-primary mt-1">
+            {totalEurYear.toLocaleString('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })} gasto acumulado
+          </p>
+        )}
       </div>
 
     </div>

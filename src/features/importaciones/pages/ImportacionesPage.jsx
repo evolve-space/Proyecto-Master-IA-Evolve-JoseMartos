@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { importacionesService } from '../services/importacionesService'
 import { downloadImportacionPdf } from '../utils/downloadImportacionPdf'
 import { proveedoresService } from '../../proveedores/services/proveedoresService'
@@ -29,6 +30,7 @@ const EMPTY = {
 }
 
 export default function ImportacionesPage() {
+  const navigate = useNavigate()
   const [importaciones, setImportaciones] = useState([])
   const [proveedores, setProveedores]     = useState([])
   const [loading, setLoading]             = useState(true)
@@ -56,7 +58,7 @@ export default function ImportacionesPage() {
 
   const openCreate = ()  => { setForm(EMPTY); setSelected(null); setModal('create') }
   const openEdit   = i   => { setForm({ ...EMPTY, ...i }); setSelected(i); setModal('edit') }
-  const openDetail = i   => { setSelected(i); setModal('detail') }
+  const openDetail = i   => navigate(`/importaciones/${i.id}`)
   const openDelete = i   => { setSelected(i); setModal('delete') }
   const close      = ()  => { setModal(null); setSelected(null) }
   const set        = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -189,7 +191,11 @@ export default function ImportacionesPage() {
                       <span className="text-body-sm">{i.proveedorNombre}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-body-sm">{i.producto}</td>
+                  <td className="px-6 py-4 text-body-sm">
+                    <button type="button" onClick={() => openDetail(i)} className="hover:text-primary hover:underline text-left">
+                      {i.producto}
+                    </button>
+                  </td>
                   <td className="px-6 py-4 font-label-md">{parseFloat(i.cantidad ?? 0).toLocaleString('es-ES')}</td>
                   <td className="px-6 py-4 font-label-md">{parseFloat(i.importeEur ?? 0).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</td>
                   <td className="px-6 py-4 font-label-md">{parseFloat(i.importeUsd ?? 0).toLocaleString('es-ES', { style: 'currency', currency: 'USD' })}</td>

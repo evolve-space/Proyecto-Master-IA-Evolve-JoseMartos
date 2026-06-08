@@ -137,7 +137,7 @@ export default function LoginPage() {
 
           {/* Hint */}
           <p className="text-xs text-slate-400 text-center mt-6">
-            Credenciales de prueba: <span className="font-mono">admin@srm.local / admin123</span>
+            Credenciales de prueba: <span className="font-mono">superadmin / superadmin</span>
           </p>
         </div>
       </div>
