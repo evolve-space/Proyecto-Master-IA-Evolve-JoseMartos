@@ -2,7 +2,11 @@
 
 namespace App\Repository;
 
+use App\Entity\Contrato;
 use App\Entity\Email;
+use App\Entity\Importacion;
+use App\Entity\Muestra;
+use App\Entity\Oferta;
 use App\Entity\Proveedor;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -44,5 +48,29 @@ class EmailRepository extends ServiceEntityRepository
             ->orderBy('e.receivedAt', 'DESC')
             ->getQuery()
             ->getResult();
+    }
+
+    /** @return Email[] */
+    public function findByOferta(Oferta $oferta): array
+    {
+        return $this->findBy(['oferta' => $oferta], ['receivedAt' => 'DESC']);
+    }
+
+    /** @return Email[] */
+    public function findByMuestra(Muestra $muestra): array
+    {
+        return $this->findBy(['muestra' => $muestra], ['receivedAt' => 'DESC']);
+    }
+
+    /** @return Email[] */
+    public function findByContrato(Contrato $contrato): array
+    {
+        return $this->findBy(['contrato' => $contrato], ['receivedAt' => 'DESC']);
+    }
+
+    /** @return Email[] */
+    public function findByImportacion(Importacion $importacion): array
+    {
+        return $this->findBy(['importacion' => $importacion], ['receivedAt' => 'DESC']);
     }
 }

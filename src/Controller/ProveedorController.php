@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Proveedor;
 use App\Repository\ProveedorRepository;
+use App\Service\ProveedorTimelineService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -20,6 +21,19 @@ class ProveedorController extends AbstractController
         $proveedores = $repo->findAll();
 
         return $this->json(array_map(fn(Proveedor $p) => $this->serialize($p), $proveedores));
+    }
+
+    #[Route('/{id}/timeline', name: 'timeline', methods: ['GET'])]
+    public function timeline(Proveedor $proveedor, Request $request, ProveedorTimelineService $timelineService): JsonResponse
+    {
+        $type = $request->query->get('type');
+        $data = $timelineService->build($proveedor, $type);
+
+        return $this->json([
+            'proveedor' => $this->serialize($proveedor),
+            'stats' => $data['stats'],
+            'items' => $data['items'],
+        ]);
     }
 
     #[Route('/{id}', name: 'show', methods: ['GET'])]

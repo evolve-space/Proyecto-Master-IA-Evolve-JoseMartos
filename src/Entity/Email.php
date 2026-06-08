@@ -17,6 +17,10 @@ class Email
     public const STATUS_REPLIED = 'replied';
     public const STATUS_CLOSED = 'closed';
 
+    public const URGENCY_BAJA = 'baja';
+    public const URGENCY_NORMAL = 'normal';
+    public const URGENCY_ALTA = 'alta';
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -29,6 +33,31 @@ class Email
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(name: 'categoria_id', nullable: true, onDelete: 'SET NULL')]
     private ?EmailCategoria $categoria = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(name: 'importacion_id', nullable: true, onDelete: 'SET NULL')]
+    private ?Importacion $importacion = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(name: 'muestra_id', nullable: true, onDelete: 'SET NULL')]
+    private ?Muestra $muestra = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(name: 'oferta_id', nullable: true, onDelete: 'SET NULL')]
+    private ?Oferta $oferta = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(name: 'contrato_id', nullable: true, onDelete: 'SET NULL')]
+    private ?Contrato $contrato = null;
+
+    #[ORM\Column(length: 10, options: ['default' => 'normal'])]
+    private string $urgency = self::URGENCY_NORMAL;
+
+    #[ORM\Column(name: 'classification_source', length: 10, nullable: true)]
+    private ?string $classificationSource = null;
+
+    #[ORM\Column(name: 'classification_reason', type: Types::TEXT, nullable: true)]
+    private ?string $classificationReason = null;
 
     #[ORM\Column(name: 'message_id', length: 255, unique: true)]
     private string $messageId = '';
@@ -95,6 +124,94 @@ class Email
     public function setCategoria(?EmailCategoria $categoria): static
     {
         $this->categoria = $categoria;
+
+        return $this;
+    }
+
+    public function getImportacion(): ?Importacion
+    {
+        return $this->importacion;
+    }
+
+    public function setImportacion(?Importacion $importacion): static
+    {
+        $this->importacion = $importacion;
+
+        return $this;
+    }
+
+    public function getMuestra(): ?Muestra
+    {
+        return $this->muestra;
+    }
+
+    public function setMuestra(?Muestra $muestra): static
+    {
+        $this->muestra = $muestra;
+
+        return $this;
+    }
+
+    public function getOferta(): ?Oferta
+    {
+        return $this->oferta;
+    }
+
+    public function setOferta(?Oferta $oferta): static
+    {
+        $this->oferta = $oferta;
+
+        return $this;
+    }
+
+    public function getContrato(): ?Contrato
+    {
+        return $this->contrato;
+    }
+
+    public function setContrato(?Contrato $contrato): static
+    {
+        $this->contrato = $contrato;
+
+        return $this;
+    }
+
+    public function getUrgency(): string
+    {
+        return $this->urgency;
+    }
+
+    public function setUrgency(string $urgency): static
+    {
+        $allowed = [self::URGENCY_BAJA, self::URGENCY_NORMAL, self::URGENCY_ALTA];
+        if (!in_array($urgency, $allowed, true)) {
+            throw new \InvalidArgumentException('Urgencia no valida.');
+        }
+        $this->urgency = $urgency;
+
+        return $this;
+    }
+
+    public function getClassificationSource(): ?string
+    {
+        return $this->classificationSource;
+    }
+
+    public function setClassificationSource(?string $classificationSource): static
+    {
+        $this->classificationSource = $classificationSource;
+
+        return $this;
+    }
+
+    public function getClassificationReason(): ?string
+    {
+        return $this->classificationReason;
+    }
+
+    public function setClassificationReason(?string $classificationReason): static
+    {
+        $this->classificationReason = $classificationReason;
 
         return $this;
     }

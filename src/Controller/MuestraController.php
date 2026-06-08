@@ -6,6 +6,7 @@ use App\Entity\Muestra;
 use App\Repository\MuestraRepository;
 use App\Repository\ProveedorRepository;
 use App\Repository\UsuarioRepository;
+use App\Service\EntityFichaService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -20,6 +21,18 @@ class MuestraController extends AbstractController
     public function list(MuestraRepository $repo): JsonResponse
     {
         return $this->json(array_map(fn(Muestra $m) => $this->serialize($m), $repo->findAll()));
+    }
+
+    #[Route('/{id}/ficha', name: 'ficha', methods: ['GET'])]
+    public function ficha(Muestra $muestra, EntityFichaService $fichaService): JsonResponse
+    {
+        $ficha = $fichaService->forMuestra($muestra);
+
+        return $this->json([
+            'entity' => $this->serialize($muestra),
+            'stats' => $ficha['stats'],
+            'items' => $ficha['items'],
+        ]);
     }
 
     #[Route('/{id}', name: 'show', methods: ['GET'])]

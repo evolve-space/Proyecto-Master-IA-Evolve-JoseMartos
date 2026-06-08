@@ -11,7 +11,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class MicrosoftGraphOAuthService
 {
-    private const SCOPES = 'openid profile offline_access User.Read Mail.Read Mail.ReadWrite Mail.Send';
+    private const SCOPES = 'openid profile offline_access User.Read Mail.Read Mail.ReadWrite Mail.Send Calendars.Read Calendars.ReadWrite';
 
     public function __construct(
         private readonly HttpClientInterface $httpClient,
@@ -34,27 +34,33 @@ class MicrosoftGraphOAuthService
     /**
      * @return array{url: string, state: string}
      */
-    public function createAuthorizationUrl(): array
+    public function createAuthorizationUrl(bool $forceConsent = false, ?string $returnTo = null): array
     {
         $clientId = $this->clientId();
         $redirectUri = $this->redirectUri();
         $state = bin2hex(random_bytes(16));
 
         $this->cache->delete('ms_oauth_state_'.$state);
-        $this->cache->get('ms_oauth_state_'.$state, static function (ItemInterface $item) {
+        $this->cache->get('ms_oauth_state_'.$state, static function (ItemInterface $item) use ($returnTo) {
             $item->expiresAfter(600);
 
-            return true;
+            return $returnTo ?? 'correos';
         });
 
-        $query = http_build_query([
+        $params = [
             'client_id' => $clientId,
             'response_type' => 'code',
             'redirect_uri' => $redirectUri,
             'response_mode' => 'query',
             'scope' => self::SCOPES,
             'state' => $state,
-        ]);
+        ];
+
+        if ($forceConsent) {
+            $params['prompt'] = 'consent';
+        }
+
+        $query = http_build_query($params);
 
         return [
             'url' => $this->authorizeBaseUrl().'/oauth2/v2.0/authorize?'.$query,
@@ -68,15 +74,25 @@ class MicrosoftGraphOAuthService
             return false;
         }
 
+        return $this->cache->getItem('ms_oauth_state_'.$state)->isHit();
+    }
+
+    public function consumeOAuthReturnTo(?string $state): ?string
+    {
+        if ($state === null || $state === '') {
+            return null;
+        }
+
         $key = 'ms_oauth_state_'.$state;
         $item = $this->cache->getItem($key);
         if (!$item->isHit()) {
-            return false;
+            return null;
         }
 
         $this->cache->delete($key);
+        $value = $item->get();
 
-        return true;
+        return is_string($value) && $value !== '' ? $value : 'correos';
     }
 
     public function exchangeAuthorizationCode(string $code): OutlookConnection

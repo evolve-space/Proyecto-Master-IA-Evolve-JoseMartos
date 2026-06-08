@@ -1,0 +1,4 @@
+# Config local del servidor Symfony CLI (solo desarrollo)
+http:
+    port: 8000
+    use_gzip: true

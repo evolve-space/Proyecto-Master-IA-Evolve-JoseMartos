@@ -4,10 +4,15 @@ namespace App\Controller;
 
 use App\Entity\Email;
 use App\Entity\EmailExclusion;
+use App\Entity\Muestra;
+use App\Entity\Oferta;
 use App\Entity\Proveedor;
 use App\Repository\EmailCategoriaRepository;
 use App\Repository\EmailExclusionRepository;
 use App\Repository\EmailRepository;
+use App\Repository\ProveedorRepository;
+use App\Repository\UsuarioRepository;
+use App\Service\EmailClassificationService;
 use App\Service\EmailGraphSyncService;
 use App\Service\EmailImportService;
 use App\Service\MicrosoftGraphMailService;
@@ -16,6 +21,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -182,6 +188,149 @@ class EmailController extends AbstractController
         } catch (\Throwable $e) {
             return $this->json(['error' => $e->getMessage()], 500);
         }
+    }
+
+    #[Route('/api/emails/{id}/classify', name: 'api_email_classify', methods: ['POST'])]
+    public function classify(Email $email, EmailClassificationService $classificationService): JsonResponse
+    {
+        try {
+            $result = $classificationService->classifyAndApply($email, true);
+
+            return $this->json([
+                'email' => $this->serialize($email),
+                'classification' => $result->toArray(),
+            ]);
+        } catch (\Throwable $e) {
+            return $this->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    #[Route('/api/emails/classify-pending', name: 'api_email_classify_pending', methods: ['POST'])]
+    public function classifyPending(
+        EmailRepository $emailRepository,
+        EmailClassificationService $classificationService,
+    ): JsonResponse {
+        $emails = $emailRepository->findAllOrdered();
+        $classified = 0;
+        $errors = [];
+
+        foreach ($emails as $email) {
+            if ($email->getClassificationSource() !== null) {
+                continue;
+            }
+            try {
+                $classificationService->classifyAndApply($email);
+                ++$classified;
+            } catch (\Throwable $e) {
+                $errors[] = ['id' => $email->getId(), 'error' => $e->getMessage()];
+            }
+        }
+
+        return $this->json([
+            'classified' => $classified,
+            'errors' => $errors,
+        ]);
+    }
+
+    #[Route('/api/emails/{id}/ofertas', name: 'api_email_create_oferta', methods: ['POST'])]
+    public function createOfertaFromEmail(
+        Email $email,
+        Request $request,
+        EntityManagerInterface $em,
+        ProveedorRepository $proveedorRepo,
+    ): JsonResponse {
+        $data = json_decode($request->getContent(), true) ?? [];
+        $proveedorId = $data['proveedorId'] ?? $email->getProveedor()?->getId();
+
+        if (empty($proveedorId)) {
+            return $this->json(['error' => 'Selecciona un proveedor o vincula el correo a uno.'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $proveedor = $proveedorRepo->find($proveedorId);
+        if (!$proveedor) {
+            return $this->json(['error' => 'Proveedor no encontrado.'], Response::HTTP_NOT_FOUND);
+        }
+
+        $oferta = new Oferta();
+        $oferta->setProveedor($proveedor);
+
+        if (empty($data['fecha'])) {
+            $oferta->setFecha(\DateTime::createFromImmutable($email->getReceivedAt()));
+        }
+
+        $this->hydrateOfertaFromRequest($oferta, $data);
+
+        if (!$oferta->getProducto() && $email->getSubject() !== '') {
+            $oferta->setProducto($this->cleanEmailSubject($email->getSubject()));
+        }
+
+        $email->setOferta($oferta);
+        if (!$email->getProveedor()) {
+            $email->setProveedor($proveedor);
+        }
+
+        $em->persist($oferta);
+        $em->flush();
+
+        return $this->json([
+            'oferta' => $this->serializeOfertaBrief($oferta),
+            'email' => $this->serialize($email),
+        ], Response::HTTP_CREATED);
+    }
+
+    #[Route('/api/emails/{id}/muestras', name: 'api_email_create_muestra', methods: ['POST'])]
+    public function createMuestraFromEmail(
+        Email $email,
+        Request $request,
+        EntityManagerInterface $em,
+        ProveedorRepository $proveedorRepo,
+        UsuarioRepository $usuarioRepo,
+    ): JsonResponse {
+        $data = json_decode($request->getContent(), true) ?? [];
+        $proveedorId = $data['proveedorId'] ?? $email->getProveedor()?->getId();
+
+        if (empty($proveedorId)) {
+            return $this->json(['error' => 'Selecciona un proveedor o vincula el correo a uno.'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $proveedor = $proveedorRepo->find($proveedorId);
+        if (!$proveedor) {
+            return $this->json(['error' => 'Proveedor no encontrado.'], Response::HTTP_NOT_FOUND);
+        }
+
+        $muestra = new Muestra();
+        $muestra->setProveedor($proveedor);
+
+        if (!empty($data['usuarioId'])) {
+            $usuario = $usuarioRepo->find($data['usuarioId']);
+            if (!$usuario) {
+                return $this->json(['error' => 'Usuario no encontrado.'], Response::HTTP_NOT_FOUND);
+            }
+            $muestra->setUsuario($usuario);
+        }
+
+        if (empty($data['fecha'])) {
+            $muestra->setFecha(\DateTime::createFromImmutable($email->getReceivedAt()));
+        }
+
+        $this->hydrateMuestraFromRequest($muestra, $data);
+
+        if (!$muestra->getProducto() && $email->getSubject() !== '') {
+            $muestra->setProducto($this->cleanEmailSubject($email->getSubject()));
+        }
+
+        $email->setMuestra($muestra);
+        if (!$email->getProveedor()) {
+            $email->setProveedor($proveedor);
+        }
+
+        $em->persist($muestra);
+        $em->flush();
+
+        return $this->json([
+            'muestra' => $this->serializeMuestraBrief($muestra),
+            'email' => $this->serialize($email),
+        ], Response::HTTP_CREATED);
     }
 
     #[Route('/api/emails/{id}', name: 'api_email_update', methods: ['PATCH'])]
@@ -387,6 +536,17 @@ class EmailController extends AbstractController
             'categoriaId' => $email->getCategoria()?->getId(),
             'categoriaNombre' => $email->getCategoria()?->getNombre(),
             'categoriaColor' => $email->getCategoria()?->getColor(),
+            'urgency' => $email->getUrgency(),
+            'classificationSource' => $email->getClassificationSource(),
+            'classificationReason' => $email->getClassificationReason(),
+            'importacionId' => $email->getImportacion()?->getId(),
+            'importacionProducto' => $email->getImportacion()?->getProducto(),
+            'muestraId' => $email->getMuestra()?->getId(),
+            'muestraProducto' => $email->getMuestra()?->getProducto(),
+            'ofertaId' => $email->getOferta()?->getId(),
+            'ofertaProducto' => $email->getOferta()?->getProducto(),
+            'contratoId' => $email->getContrato()?->getId(),
+            'contratoNumero' => $email->getContrato()?->getNumeroContrato(),
             'messageId' => $email->getMessageId(),
             'conversationId' => $email->getConversationId(),
             'sender' => $email->getSender(),
@@ -399,6 +559,102 @@ class EmailController extends AbstractController
             'createdAt' => $email->getCreatedAt()->format(\DATE_ATOM),
             'hasAttachments' => $email->hasAttachments(),
             'attachments' => $email->getAttachments() ?? [],
+        ];
+    }
+
+    private function cleanEmailSubject(string $subject): string
+    {
+        $clean = preg_replace('/^(re|fw|fwd)\s*:\s*/i', '', trim($subject)) ?? trim($subject);
+
+        return mb_substr($clean, 0, 255);
+    }
+
+    private function hydrateOfertaFromRequest(Oferta $o, array $data): void
+    {
+        if (array_key_exists('fecha', $data)) {
+            $o->setFecha($data['fecha'] ? new \DateTime($data['fecha']) : null);
+        }
+        if (array_key_exists('producto', $data)) {
+            $o->setProducto($data['producto']);
+        }
+        if (array_key_exists('grado', $data)) {
+            $o->setGrado($data['grado']);
+        }
+        if (array_key_exists('cantidad', $data)) {
+            $o->setCantidad($data['cantidad']);
+        }
+        if (array_key_exists('precio', $data)) {
+            $o->setPrecio($data['precio']);
+        }
+        if (array_key_exists('moneda', $data)) {
+            $o->setMoneda($data['moneda']);
+        }
+        if (array_key_exists('incoterm', $data)) {
+            $o->setIncoterm($data['incoterm']);
+        }
+        if (array_key_exists('muestra', $data)) {
+            $o->setMuestra($data['muestra'] !== null ? (bool) $data['muestra'] : null);
+        }
+        if (array_key_exists('tipo', $data)) {
+            $o->setTipo($data['tipo']);
+        }
+        if (array_key_exists('documentacion', $data)) {
+            $o->setDocumentacion($data['documentacion'] !== null ? (bool) $data['documentacion'] : null);
+        }
+        if (array_key_exists('observaciones', $data)) {
+            $o->setObservaciones($data['observaciones']);
+        }
+    }
+
+    private function hydrateMuestraFromRequest(Muestra $m, array $data): void
+    {
+        if (array_key_exists('fecha', $data)) {
+            $m->setFecha($data['fecha'] ? new \DateTime($data['fecha']) : null);
+        }
+        if (array_key_exists('estado', $data)) {
+            $m->setEstado($data['estado']);
+        }
+        if (array_key_exists('idLote', $data)) {
+            $m->setIdLote($data['idLote']);
+        }
+        if (array_key_exists('producto', $data)) {
+            $m->setProducto($data['producto']);
+        }
+        if (array_key_exists('grado', $data)) {
+            $m->setGrado($data['grado']);
+        }
+        if (array_key_exists('documentacion', $data)) {
+            $m->setDocumentacion($data['documentacion'] !== null ? (bool) $data['documentacion'] : null);
+        }
+        if (array_key_exists('observaciones', $data)) {
+            $m->setObservaciones($data['observaciones']);
+        }
+    }
+
+    private function serializeOfertaBrief(Oferta $o): array
+    {
+        return [
+            'id' => $o->getId(),
+            'fecha' => $o->getFecha()?->format('Y-m-d'),
+            'proveedorId' => $o->getProveedor()?->getId(),
+            'proveedorNombre' => $o->getProveedor()?->getNombre(),
+            'producto' => $o->getProducto(),
+            'precio' => $o->getPrecio(),
+            'moneda' => $o->getMoneda(),
+            'tipo' => $o->getTipo(),
+        ];
+    }
+
+    private function serializeMuestraBrief(Muestra $m): array
+    {
+        return [
+            'id' => $m->getId(),
+            'fecha' => $m->getFecha()?->format('Y-m-d'),
+            'proveedorId' => $m->getProveedor()?->getId(),
+            'proveedorNombre' => $m->getProveedor()?->getNombre(),
+            'producto' => $m->getProducto(),
+            'estado' => $m->getEstado(),
+            'idLote' => $m->getIdLote(),
         ];
     }
 }

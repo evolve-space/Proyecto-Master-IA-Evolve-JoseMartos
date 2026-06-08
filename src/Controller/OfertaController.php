@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Oferta;
 use App\Repository\OfertaRepository;
 use App\Repository\ProveedorRepository;
+use App\Service\EntityFichaService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -19,6 +20,18 @@ class OfertaController extends AbstractController
     public function list(OfertaRepository $repo): JsonResponse
     {
         return $this->json(array_map(fn(Oferta $o) => $this->serialize($o), $repo->findAll()));
+    }
+
+    #[Route('/{id}/ficha', name: 'ficha', methods: ['GET'])]
+    public function ficha(Oferta $oferta, EntityFichaService $fichaService): JsonResponse
+    {
+        $ficha = $fichaService->forOferta($oferta);
+
+        return $this->json([
+            'entity' => $this->serialize($oferta),
+            'stats' => $ficha['stats'],
+            'items' => $ficha['items'],
+        ]);
     }
 
     #[Route('/{id}', name: 'show', methods: ['GET'])]

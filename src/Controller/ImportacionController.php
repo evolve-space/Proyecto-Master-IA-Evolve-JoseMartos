@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Importacion;
 use App\Repository\ImportacionRepository;
 use App\Repository\ProveedorRepository;
+use App\Service\EntityFichaService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -19,6 +20,18 @@ class ImportacionController extends AbstractController
     public function list(ImportacionRepository $repo): JsonResponse
     {
         return $this->json(array_map(fn(Importacion $i) => $this->serialize($i), $repo->findAll()));
+    }
+
+    #[Route('/{id}/ficha', name: 'ficha', methods: ['GET'])]
+    public function ficha(Importacion $importacion, EntityFichaService $fichaService): JsonResponse
+    {
+        $ficha = $fichaService->forImportacion($importacion);
+
+        return $this->json([
+            'entity' => $this->serialize($importacion),
+            'stats' => $ficha['stats'],
+            'items' => $ficha['items'],
+        ]);
     }
 
     #[Route('/{id}', name: 'show', methods: ['GET'])]

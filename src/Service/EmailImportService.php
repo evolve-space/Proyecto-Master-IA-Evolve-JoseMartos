@@ -16,6 +16,7 @@ class EmailImportService
         private readonly EmailRepository $emailRepository,
         private readonly ProveedorRepository $proveedorRepository,
         private readonly EmailExclusionRepository $emailExclusionRepository,
+        private readonly EmailClassificationService $classificationService,
     ) {
     }
 
@@ -45,6 +46,7 @@ class EmailImportService
         $email = $this->buildEmailFromData($data);
         $this->em->persist($email);
         $this->em->flush();
+        $this->classificationService->classifyAndApply($email);
 
         return $email;
     }
@@ -60,6 +62,7 @@ class EmailImportService
         $duplicated = 0;
         $failed = 0;
         $errors = [];
+        $toClassify = [];
 
         foreach ($items as $index => $data) {
             if (!is_array($data)) {
@@ -90,6 +93,7 @@ class EmailImportService
                 $this->em->persist($email);
                 ++$imported;
                 $emails[] = $email;
+                $toClassify[] = $email;
             } catch (\Throwable $e) {
                 ++$failed;
                 $errors[] = ['index' => $index, 'error' => $e->getMessage()];
@@ -98,6 +102,14 @@ class EmailImportService
 
         if ($imported > 0 || $duplicated > 0) {
             $this->em->flush();
+        }
+
+        foreach ($toClassify as $email) {
+            try {
+                $this->classificationService->classifyAndApply($email);
+            } catch (\Throwable) {
+                // No bloquear importación masiva por fallo de clasificación.
+            }
         }
 
         return [

@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Contrato;
 use App\Repository\ContratoRepository;
 use App\Repository\ProveedorRepository;
+use App\Service\EntityFichaService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -19,6 +20,18 @@ class ContratoController extends AbstractController
     public function list(ContratoRepository $repo): JsonResponse
     {
         return $this->json(array_map(fn(Contrato $c) => $this->serialize($c), $repo->findAll()));
+    }
+
+    #[Route('/{id}/ficha', name: 'ficha', methods: ['GET'])]
+    public function ficha(Contrato $contrato, EntityFichaService $fichaService): JsonResponse
+    {
+        $ficha = $fichaService->forContrato($contrato);
+
+        return $this->json([
+            'entity' => $this->serialize($contrato),
+            'stats' => $ficha['stats'],
+            'items' => $ficha['items'],
+        ]);
     }
 
     #[Route('/{id}', name: 'show', methods: ['GET'])]
