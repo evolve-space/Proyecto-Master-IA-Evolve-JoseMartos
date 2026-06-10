@@ -34,17 +34,20 @@ class MicrosoftGraphOAuthService
     /**
      * @return array{url: string, state: string}
      */
-    public function createAuthorizationUrl(bool $forceConsent = false, ?string $returnTo = null): array
+    public function createAuthorizationUrl(bool $forceConsent = false, ?string $returnTo = null, bool $popup = false): array
     {
         $clientId = $this->clientId();
         $redirectUri = $this->redirectUri();
         $state = bin2hex(random_bytes(16));
 
         $this->cache->delete('ms_oauth_state_'.$state);
-        $this->cache->get('ms_oauth_state_'.$state, static function (ItemInterface $item) use ($returnTo) {
+        $this->cache->get('ms_oauth_state_'.$state, static function (ItemInterface $item) use ($returnTo, $popup) {
             $item->expiresAfter(600);
 
-            return $returnTo ?? 'correos';
+            return [
+                'returnTo' => $returnTo ?? 'correos',
+                'popup' => $popup,
+            ];
         });
 
         $params = [
@@ -77,7 +80,10 @@ class MicrosoftGraphOAuthService
         return $this->cache->getItem('ms_oauth_state_'.$state)->isHit();
     }
 
-    public function consumeOAuthReturnTo(?string $state): ?string
+    /**
+     * @return array{returnTo: string, popup: bool}|null
+     */
+    public function consumeOAuthContext(?string $state): ?array
     {
         if ($state === null || $state === '') {
             return null;
@@ -92,7 +98,20 @@ class MicrosoftGraphOAuthService
         $this->cache->delete($key);
         $value = $item->get();
 
-        return is_string($value) && $value !== '' ? $value : 'correos';
+        if (is_string($value) && $value !== '') {
+            return ['returnTo' => $value, 'popup' => false];
+        }
+
+        if (is_array($value)) {
+            $returnTo = trim((string) ($value['returnTo'] ?? 'correos'));
+
+            return [
+                'returnTo' => in_array($returnTo, ['correos', 'calendario'], true) ? $returnTo : 'correos',
+                'popup' => (bool) ($value['popup'] ?? false),
+            ];
+        }
+
+        return null;
     }
 
     public function exchangeAuthorizationCode(string $code): OutlookConnection
@@ -232,9 +251,19 @@ class MicrosoftGraphOAuthService
 
     private function redirectUri(): string
     {
-        $uri = trim((string) ($_ENV['MS_GRAPH_REDIRECT_URI'] ?? ''));
+        $uri = rtrim(trim((string) ($_ENV['MS_GRAPH_REDIRECT_URI'] ?? '')), '/');
+
         if ($uri === '') {
-            throw new \RuntimeException('Falta MS_GRAPH_REDIRECT_URI (ej. http://localhost:8000/api/outlook/oauth/callback).');
+            $base = rtrim(trim((string) ($_ENV['DEFAULT_URI'] ?? '')), '/');
+            if ($base !== '') {
+                $uri = $base.'/api/outlook/oauth/callback';
+            }
+        }
+
+        if ($uri === '') {
+            throw new \RuntimeException(
+                'Falta MS_GRAPH_REDIRECT_URI o DEFAULT_URI (ej. https://tu-backend.up.railway.app/api/outlook/oauth/callback).'
+            );
         }
 
         return $uri;
