@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { calendarioService } from '../services/calendarioService'
 import { outlookOAuthService } from '../../emails/services/outlookOAuthService'
+import { openOutlookOAuth } from '../../emails/utils/outlookOAuthFlow'
 import { emailsService } from '../../emails/services/emailsService'
 import { proveedoresService } from '../../proveedores/services/proveedoresService'
 import MonthCalendar from '../components/MonthCalendar'
@@ -205,7 +206,19 @@ export default function CalendarioPage() {
         consent: reauthorize || !outlook.connected,
         returnTo: 'calendario',
       })
-      window.location.href = url
+      if (!url) throw new Error('No se recibió URL de Microsoft.')
+      openOutlookOAuth(url, {
+        onConnected: () => {
+          setError(null)
+          loadOutlook()
+          setConnectingOutlook(false)
+        },
+        onError: (message) => {
+          setError(message)
+          setConnectingOutlook(false)
+        },
+        onDismiss: () => setConnectingOutlook(false),
+      })
     } catch (e) {
       setError(e.message)
       setConnectingOutlook(false)

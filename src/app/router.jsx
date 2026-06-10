@@ -1,4 +1,5 @@
-import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-router-dom'
+import OutlookOAuthRedirect from './OutlookOAuthRedirect'
 import { useAuth } from './AuthContext'
 import MainLayout        from '../components/layout/MainLayout'
 import LoginPage         from '../features/auth/pages/LoginPage'
@@ -47,7 +48,19 @@ function PublicRoute({ children }) {
   return children
 }
 
+function AppShell() {
+  return (
+    <>
+      <OutlookOAuthRedirect />
+      <Outlet />
+    </>
+  )
+}
+
 const router = createBrowserRouter([
+  {
+    element: <AppShell />,
+    children: [
   {
     path: '/login',
     element: <PublicRoute><LoginPage /></PublicRoute>,
@@ -124,6 +137,8 @@ const router = createBrowserRouter([
   {
     path: '*',
     element: <Navigate to="/" replace />,
+  },
+    ],
   },
 ])
 

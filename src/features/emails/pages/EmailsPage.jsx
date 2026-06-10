@@ -11,6 +11,7 @@ import { addExcludedMessageId, filterExcludedEmails } from "../utils/excludedEma
 import { emailCategoriasService } from "../services/emailCategoriasService";
 import { emailsService } from "../services/emailsService";
 import { outlookOAuthService } from "../services/outlookOAuthService";
+import { openOutlookOAuth } from "../utils/outlookOAuthFlow";
 import { getEmailEntityLink, urgencyLabel, urgencyStyle } from "../utils/emailEntityLink";
 import { proveedoresService } from "../../proveedores/services/proveedoresService";
 import {
@@ -238,9 +239,20 @@ export default function EmailsPage() {
   const handleConnectOutlook = async () => {
     setConnectingOutlook(true);
     try {
-      const { url } = await outlookOAuthService.getConnectUrl();
+      const { url } = await outlookOAuthService.getConnectUrl({ returnTo: "correos" });
       if (!url) throw new Error("No se recibió URL de Microsoft.");
-      window.location.href = url;
+      openOutlookOAuth(url, {
+        onConnected: () => {
+          setError(null);
+          loadOutlookStatus();
+          setConnectingOutlook(false);
+        },
+        onError: (message) => {
+          setError(message);
+          setConnectingOutlook(false);
+        },
+        onDismiss: () => setConnectingOutlook(false),
+      });
     } catch (e) {
       setError(e.message);
       setConnectingOutlook(false);
