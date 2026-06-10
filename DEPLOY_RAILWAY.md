@@ -31,14 +31,11 @@ En el servicio **backend** → **Variables**, añade:
 | `APP_ENV` | `prod` |
 | `APP_DEBUG` | `0` |
 | `APP_SECRET` | cadena aleatoria larga (ej. `openssl rand -hex 32`) |
-| `DATABASE_HOST` | `${{MySQL.MYSQLHOST}}` o el host que muestre Railway |
-| `DATABASE_PORT` | `${{MySQL.MYSQLPORT}}` |
-| `DATABASE_NAME` | `${{MySQL.MYSQLDATABASE}}` |
-| `DATABASE_USER` | `${{MySQL.MYSQLUSER}}` |
-| `DATABASE_PASSWORD` | `${{MySQL.MYSQLPASSWORD}}` |
+| `DATABASE_URL` | `${{MySQL.MYSQL_URL}}` |
 | `DEFAULT_URI` | `https://TU-DOMINIO.up.railway.app` |
 
-> Railway permite referenciar la BD con `${{NombreServicioMySQL.MYSQLHOST}}`. Haz clic en **Add Reference** junto a la variable.
+> En el servicio backend → Variables → **Add Reference** → elige tu MySQL → `MYSQL_URL`.
+> En producción Symfony usa `DATABASE_URL`; en local sigue usando `DATABASE_HOST`, `DATABASE_PORT`, etc.
 
 ### JWT (ya incluidas en el repo)
 
@@ -108,7 +105,7 @@ php bin/console app:load-sample-data --env=prod
 
 | Síntoma | Causa | Solución |
 |---------|-------|----------|
-| `502 Application failed to respond` | Migraciones/arranque falló | Revisa logs; confirma `DATABASE_*` |
+| `502 Application failed to respond` | Migraciones/arranque falló | Revisa logs; confirma `DATABASE_URL` |
 | CORS blocked en OPTIONS | Sin `public/router.php` | Asegúrate de tener el último deploy |
 | `Invalid credentials` | BD vacía | `app:load-sample-data` |
 | Fatal error `.env` | Deploy antiguo | Redeploy con el `.env` en el repo |

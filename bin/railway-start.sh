@@ -16,7 +16,7 @@ php bin/console cache:warmup --env=prod
 
 echo "==> Migraciones de base de datos"
 if ! php bin/console doctrine:migrations:migrate --no-interaction --env=prod; then
-    echo "WARN: migraciones fallaron. Revisa DATABASE_* en Railway. El servidor arranca igual." >&2
+    echo "WARN: migraciones fallaron. Revisa DATABASE_URL en Railway. El servidor arranca igual." >&2
 fi
 
 PORT="${PORT:-8000}"
