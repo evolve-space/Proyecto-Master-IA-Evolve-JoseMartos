@@ -16,4 +16,4 @@ Get-NetTCPConnection -LocalPort 8000 -State Listen -ErrorAction SilentlyContinue
 
 Write-Host "Iniciando en http://127.0.0.1:8000"
 Write-Host "Para parar: Ctrl+C`n"
-php -S 127.0.0.1:8000 -t public
+php -S 127.0.0.1:8000 -t public public/router.php
