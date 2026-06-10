@@ -9,6 +9,8 @@
 parameters:
     # Ruta a los archivos de personalidad de los agentes — relativa al proyecto
     app.agents_path: "%kernel.project_dir%/src/Agent/agents"
+    # CORS por defecto: localhost (dev) + despliegues Vercel (*.vercel.app)
+    cors_allow_origin_default: '^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$|^https://[a-z0-9.-]+\.vercel\.app$'
 
 services:
     # default configuration for services in *this* file
