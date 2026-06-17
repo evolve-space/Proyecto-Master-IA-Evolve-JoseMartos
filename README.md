@@ -197,22 +197,20 @@ symfony server:start
 
 ## Dashboard principal
 
-<img width="1877" height="919" alt="image" src="https://github.com/user-attachments/assets/c59686eb-ae20-4b9a-9d71-ac9826a69eff" />
+<img width="1891" height="937" alt="Imgen 1" src="https://github.com/user-attachments/assets/b9229162-c3ec-403c-b923-36d97b20b5ae" />
 
 ## Gestión de proveedores
 
-<img width="1891" height="636" alt="image" src="https://github.com/user-attachments/assets/168a4e0b-24d9-4e4c-8508-8a47049b848c" />
+<img width="1898" height="637" alt="Imgen 3" src="https://github.com/user-attachments/assets/380d5af5-b07d-414e-a3c9-99b151012e8a" />
 
-## Asistente IA
+## Gestión de correos automatizados
 
-<img width="1897" height="924" alt="image" src="https://github.com/user-attachments/assets/c3f46374-46bf-43eb-9351-fa22cff63d27" />
+<img width="1905" height="935" alt="Imgen 2" src="https://github.com/user-attachments/assets/b959b7e2-fe68-4cc8-ab78-7d825b9a848a" />
 
 ---
 
 # Futuras mejoras
 
-- Automatización avanzada mediante agentes IA
-- Gestión documental inteligente
 - Sistema avanzado de métricas y análisis
 - Integración con ERPs y plataformas externas
 - Workflows configurables y automatización avanzada
