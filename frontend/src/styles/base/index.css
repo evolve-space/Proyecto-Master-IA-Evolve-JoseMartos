@@ -1,7 +1,0 @@
-/* =============================================
-   BASE — Punto de entrada de estilos globales
-   Importa en main.jsx: import './styles/base/index.css'
-   ============================================= */
-@import './variables.css';
-@import './reset.css';
-@import './typography.css';
